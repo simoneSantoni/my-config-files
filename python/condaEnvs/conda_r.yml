@@ -1,0 +1,20 @@
+# environment.yaml
+
+name: r
+channels:
+  - conda-forge
+dependencies:
+  - pylsp-mypy
+  - pynvim
+  - pylint
+  - flake8
+  - anaconda
+  - pip
+  - jupyter
+  - jupyterlab
+  - r-base
+  - r-essentials
+  - r-irkernel
+  - rpy2
+  - radian
+  - jupyterlab_vim
