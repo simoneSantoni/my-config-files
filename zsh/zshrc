@@ -2,7 +2,7 @@
 # export PATH=$HOME/bin:$HOME/.local/bin:/usr/local/bin:$PATH
 
 # System info
-neofetch --source /home/simone/ascii/darth_vader.txt
+fastfetch --logo /home/simone/ascii/darth_vader.txt
 
 # Path to your Oh My Zsh installation.
 export ZSH="$HOME/.oh-my-zsh"
