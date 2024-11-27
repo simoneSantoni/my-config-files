@@ -1,0 +1,60 @@
+[window]
+
+dimensions = { columns = 120, lines = 30 }
+
+position = { x = 507, y = 0 }
+
+opacity = 0.9
+
+dynamic_padding = false
+padding.x = 0
+padding.y = 0
+
+decorations = "Buttonless"
+decorations_theme_variant = "None"
+
+[terminal]
+
+shell = "wsl"
+
+[env]
+
+term = "xterm-256color"
+
+[font]
+
+normal.family = "JuliaMono Nerd Font"
+bold.family = "JuliaMono Nerd Font Bold"
+italic.family = "JuliaMono Nerd Font Italic"
+bold_italic.family = "JuliaMono Nerd Font Bold Italic"
+
+size = 10.5
+
+[colors]
+
+[colors.primary]
+
+foreground = "#34dd34"
+background = "#082208"
+
+[colors.normal]
+
+black = "#082208"
+green = "#058d74"
+red = "#98a126"
+yellow = "#98a126"
+blue = "#7eb17e"
+magenta = "#54b100"
+cyan = "#00a950"
+white = "#34dd34"
+
+[colors.bright]
+
+black = "#7eb17e"
+green = "#058d74"
+red = "#98a126"
+yellow = "#98a126"
+blue = "#7eb17e"
+magenta = "#54b100"
+cyan = "#00a950"
+white = "#34dd34"
