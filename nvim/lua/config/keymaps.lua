@@ -1,4 +1,5 @@
 -- Keymaps are automatically loaded on the VeryLazy event
+
 -- Default keymaps that are always set: https://github.com/LazyVim/LazyVim/blob/main/lua/lazyvim/config/keymaps.lua
 -- Add any additional keymaps here
 -- required in which-key plugin spec in plugins/ui.lua as `require 'config.keymap'`
@@ -53,12 +54,15 @@ nmap("<S-Right>", "<cmd>vertical resize +2<CR>")
 
 -- Add undo break-points
 imap(",", ",<c-g>u")
+
 imap(".", ".<c-g>u")
 imap(";", ";<c-g>u")
 
 nmap("Q", "<Nop>")
+
 --- Send code to terminal with vim-slime
 --- If an R terminal has been opend, this is in r_mode
+
 --- and will handle python code via reticulate when sent
 --- from a python chunk.
 --- TODO: incorpoarate this into quarto-nvim plugin
@@ -96,6 +100,7 @@ local function send_region()
     vim.cmd("normal" .. slime_send_region_cmd)
     return
   end
+
   if vim.b["quarto_is_r_mode"] == true then
     vim.g.slime_python_ipython = 0
     local is_python = require("otter.tools.functions").is_otter_language_context("python")
@@ -123,11 +128,13 @@ imap("<s-cr>", send_cell)
 
 --- Show R dataframe in the browser
 -- might not use what you think should be your default web browser
+
 -- because it is a plain html file, not a link
 -- see https://askubuntu.com/a/864698 for places to look for
 local function show_r_table()
   local node = vim.treesitter.get_node({ ignore_injections = false })
   assert(node, "no symbol found under cursor")
+
   local text = vim.treesitter.get_node_text(node, 0)
   local cmd = [[call slime#send("DT::datatable(]] .. text .. [[)" . "\r")]]
   vim.cmd(cmd)
