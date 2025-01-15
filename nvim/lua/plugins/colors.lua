@@ -2,9 +2,6 @@ return {
   { "mathofprimes/nightvision-nvim" },
   {
     "LazyVim/LazyVim",
-    opts = {
-      colorscheme = "nightvision",
-    },
   },
 
   {
