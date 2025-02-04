@@ -27,4 +27,16 @@ return {
   {
     "whatyouhide/vim-gotham",
   },
+  {
+    "Mofiqul/vscode.nvim",
+  },
+  {
+    "rose-pine/neovim",
+  },
+  {
+    "bluz71/vim-moonfly-colors",
+  },
+  {
+    "craftzdog/solarized-osaka.nvim",
+  },
 }
