@@ -13,4 +13,4 @@ wsl = false
 
 [font]
 normal = ["ComicShannsMono Nerd Font Mono"] # Will use the bundled Fira Code Nerd Font by default
-size = 9
+size = 11
