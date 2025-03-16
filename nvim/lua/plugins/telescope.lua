@@ -1,7 +1,6 @@
 return {
   {
     "nvim-telescope/telescope.nvim",
-    lazy = true,
     dependencies = {
       -- your other telescope extensions
       -- ...

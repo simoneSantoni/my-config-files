@@ -1,5 +1,4 @@
 return {
-  { "jmbuhr/cmp-pandoc-references" },
   {
     "jalvesaq/zotcite",
     dependencies = {
@@ -11,5 +10,8 @@ return {
         -- your options here (see doc/zotcite.txt)
       })
     end,
+  },
+  {
+    "jmbuhr/telescope-zotero.nvim",
   },
 }
