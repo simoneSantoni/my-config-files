@@ -1,5 +1,10 @@
 return {
-  { "mathofprimes/nightvision-nvim" },
+  {
+    "mathofprimes/nightvision-nvim",
+    config = function()
+      vim.cmd.colorscheme("nightvision")
+    end,
+  },
   {
     "LazyVim/LazyVim",
   },
@@ -35,9 +40,6 @@ return {
   },
   {
     "bluz71/vim-moonfly-colors",
-    config = function()
-      vim.cmd.colorscheme("moonfly")
-    end,
   },
   {
     "craftzdog/solarized-osaka.nvim",
