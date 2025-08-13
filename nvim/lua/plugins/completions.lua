@@ -6,21 +6,10 @@ return {
     },
     opts = {},
   },
-  "hrsh7th/nvim-cmp",
-  dependencies = {
-    "hrsh7th/cmp-cmdline",
+  {
+    "hrsh7th/nvim-cmp",
+    opts = function(_, opts)
+      table.insert(opts.sources, { name = "cmp_zotcite" })
+    end,
   },
-  opts = function(_, opts)
-    local cmp = require("cmp")
-
-    -- Command line setup
-    cmp.setup.cmdline(":", {
-      mapping = cmp.mapping.preset.cmdline(),
-      sources = {
-        { name = "cmdline" },
-      },
-    })
-
-    return opts
-  end,
 }

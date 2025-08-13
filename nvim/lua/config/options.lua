@@ -3,7 +3,7 @@
 -- Add any additional options here
 
 -- UI
-vim.o.background = "dark"
+vim.o.background = "light"
 local opt = vim.opt
 opt.wrap = true
 
@@ -12,4 +12,3 @@ vim.api.nvim_command("autocmd TermOpen * startinsert") -- starts in insert mode
 vim.api.nvim_command("autocmd TermOpen * setlocal norelativenumber") -- no relative numbers
 vim.api.nvim_command("autocmd TermOpen * setlocal nonumber") -- no numbers
 vim.api.nvim_command("autocmd TermEnter * setlocal signcolumn=no") -- no sign column
-vim.opt.termguicolors = true -- termguicolors is enabled if not already

@@ -1,3 +1,3 @@
 return {
-  { "brenoprata10/nvim-highlight-colors" },
+  "brenoprata10/nvim-highlight-colors",
 }
