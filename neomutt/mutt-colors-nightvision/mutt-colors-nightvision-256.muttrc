@@ -1,0 +1,91 @@
+# Nightvision-Inspired Neomutt Colorscheme (All Green Theme)
+# ---------------------------------------------------------
+# For truecolor support in Neomutt (version 2023-05-17+):
+# set color_directcolor = yes
+# Ensure your TERM environment variable also supports truecolor (e.g., xterm-direct)
+#
+# This theme uses representative green hex codes.
+# Replace with actual Nightvision hex codes if known.
+
+# --- Palette (Representative Greens) ---
+# Background (Inspired by Nightvision's dark, low-saturation greens):
+#   nightvision_bg_dark = "#283028" (Example: a very dark green)
+# Foreground (Readable lighter green):
+#   nightvision_fg_light = "#9FB09F" (Example: a light, slightly desaturated green)
+# Accents:
+#   nightvision_accent_medium = "#608060" (Example: a mid-tone green)
+#   nightvision_accent_distinct = "#7FA87F" (Example: a slightly brighter, sage-like green)
+#   nightvision_accent_muted = "#486048" (Example: a darker, muted green)
+#   nightvision_accent_vibrant = "#8FBF8F" (Example: a slightly more vibrant green, like a muted lime)
+#   nightvision_error_green = "#B0C0B0" (Example: a very light green for error text, can be changed to traditional red/yellow)
+#   nightvision_dim_green = "#506850" (Example: a desaturated, darker green for comments/dimmed text)
+
+# --- General UI Colors ---
+color normal          "#9FB09F" "#283028"  # Foreground on Background
+color status          "#9FB09F" "#486048"  # Status bar text on Muted Green
+color indicator       "#283028" "#7FA87F"  # Background on Distinct Accent (selected item)
+color error           "#B0C0B0" "#283028"  # Error text (light green) on Background
+color warning         "#B0C0B0" "#283028"  # Warning text also light green
+color tilde           "#506850" "#283028"  # Dimmed text on Background
+color markers         "#283028" "#8FBF8F"  # Background on Vibrant Accent (search markers)
+color search          "#283028" "#8FBF8F"  # Highlighted search results
+color progress        "#9FB09F" "#486048"  # Progress bar
+
+# --- Index View Colors ---
+# Basic new/old/read status (can be refined with patterns)
+color index           "#B0C0B0" "#283028" ~N  # New messages: Light green text
+color index           "#9FB09F" "#283028" ~O  # Old messages: Default
+color index           "#506850" "#283028" ~r  # Read messages: Dim green text
+
+# More specific index styling
+color index_author    "#7FA87F" "#283028" ".*" # Author with Distinct Accent
+color index_subject   "#9FB09F" "#283028" ".*" # Subject with default foreground
+color index_date      "#608060" "#283028" ".*" # Date with Medium Accent
+color index_size      "#608060" "#283028" ".*" # Size with Medium Accent
+color index_flags     "#8FBF8F" "#283028" ".*" # Flags with Vibrant Accent
+
+color index           "#8FBF8F" "#283028" ~F  # Flagged messages: Vibrant Accent text
+color index           "#9FB09F" "#486048" ~D  # Deleted messages: Default text on Muted Green BG
+color index           "#7FA87F" "#283028" ~T  # Tagged messages: Distinct Accent text
+color index_collapsed "#8FBF8F" "#283028"     # Collapsed thread indicator
+
+# --- Pager (Message View) Colors ---
+color hdrdefault      "#608060" "#283028"  # Default header color (Medium Accent)
+color header          "#7FA87F" "#283028" "^Subject:"
+color header          "#7FA87F" "#283028" "^From:"
+color header          "#7FA87F" "#283028" "^(To|Cc|Bcc):"
+color header          "#608060" "#283028" "^Date:"
+color header          "#506850" "#283028" "^(User-Agent|X-Mailer|X-[^:]+):" # Dimmer for less important X-headers
+
+color quoted          "#608060" "#283028"  # Level 1 quote
+color quoted1         "#587058" "#283028"  # Level 2 quote
+color quoted2         "#506850" "#283028"  # Level 3 quote (dimmer)
+color quoted3         "#486048" "#283028"  # Level 4 quote (even dimmer)
+
+color signature       "#506850" "#283028"  # Signature (Dim Accent)
+color attachment      "#8FBF8F" "#283028"  # Attachment information (Vibrant Accent)
+
+# URLs in body
+color body            "#8FBF8F" "#283028" "(https?|ftp|file)://[^ \t\n\r<>()\"]+"
+color body            "#8FBF8F" "#283028" "mailto:[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}"
+color body            "#8FBF8F" "#283028" "www\\.[-.a-zA-Z0-9_]+\\.[a-zA-Z]+"
+
+# Forcing bold/underline to specific green shades if desired (otherwise terminal defaults apply)
+# color body_bold       "#B0C0B0" "#283028"
+# color body_underline  "#B0C0B0" "#283028"
+
+# --- Sidebar Colors (if enabled) ---
+color sidebar_ordinary   "#9FB09F" "#283028"  # Regular mailboxes
+color sidebar_new        "#B0C0B0" "#283028"  # Mailboxes with new mail (Light Accent)
+color sidebar_flagged    "#8FBF8F" "#283028"  # Mailboxes with flagged mail (Vibrant Accent)
+color sidebar_highlight  "#283028" "#7FA87F"  # Selected mailbox in sidebar (Background on Distinct Accent)
+color sidebar_divider    "#486048" "#283028"  # Divider lines (Muted Accent)
+
+# --- Other UI Elements ---
+color prompt          "#9FB09F" "#486048"  # Prompt text on Muted Green
+color message_good    "#B0C0B0" "#283028"  # Good PGP signature (Light Accent)
+color message_bad     "#8FBF8F" "#486048"  # Bad PGP signature (Vibrant text on Muted BG for attention)
+color message_unknown "#9FB09F" "#486048"  # Unknown PGP signature
+
+# --- Compose View ---
+color compose_header    "#7FA87F" "#283028" # To, From, Subject etc. in compose

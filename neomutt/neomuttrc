@@ -1,0 +1,200 @@
+# ===========================================================================
+# Basic Account Information
+# ===========================================================================
+set realname = "Simone Santoni"           # Your full name
+set from = "sim.santoni@gmail.com"        # Your Gmail address
+set use_from = yes
+set envelope_from = yes                    # Sets the envelope sender
+
+# ===========================================================================
+# Aliases
+# ===========================================================================
+alias simone Simone Santoni <simone.santoni.1@citystgeorges.ac.uk>
+
+# ===========================================================================
+# IMAP Configuration (Receiving Mail)
+# ===========================================================================
+set imap_user = "sim.santoni@gmail.com"
+# Use the App Password you generated if you have 2-Step Verification
+# If not using 2-Step Verification (not recommended), use your regular Gmail password
+set imap_pass = "pdht cmpz ndtt zijh"
+
+set folder = "imaps://imap.gmail.com:993"    # Your main IMAP mailbox
+set spoolfile = "+INBOX"                     # Where to find new mail
+set postponed = "+[Gmail]/Drafts"            # Save drafts in Gmail's Drafts folder
+set record = "+[Gmail]/Sent Mail"            # Save sent mail in Gmail's Sent Mail folder
+set trash = "+[Gmail]/Trash"                 # Move deleted mail to Gmail's Trash
+# List important mailboxes (ensure these are correct for your Gmail setup)
+mailboxes +INBOX
+mailboxes "+[Gmail]/Sent Mail"
+mailboxes "+[Gmail]/Drafts"
+mailboxes "+[Gmail]/Trash"
+mailboxes "+[Gmail]/All Mail"
+mailboxes +admin
+mailboxes +@citystgeorges
+mailboxes +career
+mailboxes +community
+mailboxes +conferences
+mailboxes +grants
+mailboxes +IT
+mailboxes +LBS
+mailboxes +outreach
+mailboxes +phdSupervision
+mailboxes +research
+mailboxes +review
+mailboxes +teaching
+mailboxes +training
+mailboxes +traveling
+# Add any other labels/folders you want to see easily
+# mailboxes "+MyLabel1"
+# mailboxes "+Work/Projects"
+# Check for new mail periodically
+set mail_check = 60                          # Check for new mail every 60 seconds
+set imap_keepalive = 300                     # Keep IMAP connection alive
+
+# ===========================================================================
+# SMTP Configuration (Sending Mail)
+# ===========================================================================
+set smtp_url = "smtps://sim.santoni@gmail.com@smtp.gmail.com:465/"
+# Use the App Password you generated if you have 2-Step Verification
+set smtp_pass = "pdht cmpz ndtt zijh"
+
+# ===========================================================================
+# Security & Connection Settings
+# ===========================================================================
+set ssl_force_tls = yes          # Force TLS for security
+set ssl_starttls = yes           # Use STARTTLS
+# You might need to specify the location of your SSL certificates.
+# NeoMutt often finds them automatically, but if you have issues:
+set ssl_ca_certificates_file = "/etc/ssl/certs/ca-certificates.crt" # Example for Debian/Ubuntu
+
+# ===========================================================================
+# Header Caching (for performance)
+# ===========================================================================
+set header_cache = "~/.cache/neomutt/headers"
+set message_cachedir = "~/.cache/neomutt/bodies"
+set certificate_file = "~/.neomutt/certificates"
+
+# ===========================================================================
+# Optional: Gmail-specific configurations
+# ===========================================================================
+# To subscribe to all Gmail folders (Labels)
+# unmailboxes *
+# mailboxes `echo -e "=\n=INBOX" && \
+#            neomutt -e "set imap_user=$imap_user; set imap_pass=$imap_pass; \
+#                        source ~/.neomuttrc; \
+#                        exec list-mailboxes" | \
+#            sed -n 's/^.*[ "]"\([^"]*\)".*$/+\1/p' | \
+#            grep -v "\[Gmail\]/Spam" | \
+#            grep -v "\[Gmail\]/All Mail" | \
+#            tr '\n' ' '`
+
+# If you prefer to archive to Gmail's "All Mail"
+# macro index a "<save-message>=[Gmail]/All Mail<enter><sync-mailbox>" "Archive message (Gmail)"
+# macro pager a "<save-message>=[Gmail]/All Mail<enter><sync-mailbox>" "Archive message (Gmail)"
+
+# ===========================================================================
+# Other useful settings (optional)
+# ===========================================================================
+set editor = "nvim"                  # Or your preferred text editor (vim, emacs, etc.)
+set sort = threads
+set sort_aux = last-date-received
+set indent_string = "> "
+set pager_index_lines = 10          
+set pager_context = 3                # show 3 lines of context
+set pager_stop                       # stop at end of message
+set menu_scroll                      # scroll menu
+set tilde                            # use ~ to pad mutt
+set move=no                          # don't move messages when marking as read
+set mail_check = 30                  # check for new mail every 30 seconds
+set imap_keepalive = 900             # 15 minutes
+set sleep_time = 0                   # don't sleep when idle
+set wait_key = no		                 # mutt won't ask "press key to continue"
+set envelope_from                    # which from?
+set edit_headers                     # show headers when composing
+set fast_reply                       # skip to compose when replying
+set askcc                            # ask for CC:
+set fcc_attach                       # save attachments with the body
+set forward_format = "Fwd: %s"       # format of subject when forwarding
+set forward_decode                   # decode when forwarding
+set forward_quote                    # include message in forwards
+set mime_forward                     # forward attachments as part of body
+set attribution = "On %d, %n wrote:" # format of quoting header
+set reply_to                         # reply to Reply to: field
+set reverse_name                     # reply as whomever it was to
+set include                          # include message in replies
+set text_flowed=yes                  # correct indentation for plain text
+unset sig_dashes                     # no dashes before sig
+unset markers
+# Sort by newest conversation first.
+set charset = "utf-8"
+set uncollapse_jump
+set sort_re
+set sort = reverse-threads
+set sort_aux = last-date-received
+# How we reply and quote emails.
+set reply_regexp = "^(([Rr][Ee]?(\[[0-9]+\])?: *)?(\[[^]]+\] *)?)*"
+set quote_regexp = "^( {0,4}[>|:#%]| {0,4}[a-z0-9]+[>|]+)+"
+set send_charset = "utf-8:iso-8859-1:us-ascii" # send in utf-8
+
+# ===========================================================================
+# Sidebar (Folder Browser) Configuration
+# ===========================================================================
+set sidebar_visible = yes
+set sidebar_width = 25                    # Adjust width as needed
+set sidebar_divider_char = '│'            # Optional: custom divider
+set sidebar_format = "%B%?N?%N/?%n %* %S" # Shows new/total messages and name
+
+# Optional: keybinding to toggle sidebar visibility
+# 'b' is often a default key to toggle the folder browser
+bind index,pager b sidebar-toggle-visible
+
+# Ensure your mailboxes are listed so the sidebar can populate them
+# (You should have mailboxes lines from your Gmail setup)
+# e.g., mailboxes +INBOX "[Gmail]/Sent Mail" "[Gmail]/Drafts" "[Gmail]/Trash"
+# For a more dynamic list with Gmail labels, you might use a command to list them,
+# similar to the one provided in the previous Gmail setup for subscribing to all folders.
+
+# ===========================================================================
+# Key bindings
+# ===========================================================================
+# ... (rest of your neomuttrc) ...k
+# key bindings
+macro index A \
+    "<tag-pattern>~N<enter><tag-prefix><clear-flag>N<untag-pattern>.<enter>" \
+    "mark all new as read"
+bind index j next-entry
+bind index k previous-entry
+bind pager j next-line
+bind pager k previous-line
+bind attach,index,pager \CD next-page
+bind attach,index,pager \CU previous-page
+bind pager g top
+bind pager G bottom
+bind attach,index g first-entry
+bind attach,index G last-entry
+bind index,pager t group-reply
+
+# ===========================================================================
+# Formatting options
+# ===========================================================================
+# Reply above the quote message
+#set post_reply_text = no
+
+# ===========================================================================
+# Signatures
+# ===========================================================================
+set signature = "~/.config/neomutt/signature"
+
+
+# link to mailcap file
+set mailcap_path = "~/.config/neomutt/mailcap"
+# open attachments with mailcap with <return>
+bind attach <return> view-mailcap
+# save attachments to a folder
+macro attach s '<save-entry> <bol>~/Documents/attachments/<eol>' 'save attachment'
+auto_view text/html		# automatically show html (mailcap uses lynx)
+
+# color scheme
+#set color_directcolor = yes
+source ~/.config/neomutt/mutt-colors-solarized/solarized-dark-16.muttrc
