@@ -50,6 +50,11 @@ configuration {
 	run-list-command: "";
 	run-shell-command: "{terminal} -e {cmd}";
 
+	/*---------- Fallback Icon ----------*/
+	run,drun {
+		fallback-icon: "application-x-addon";
+	}
+
 	/*---------- Window switcher settings ----------*/
 	window-match-fields: "title,class,role,name,desktop";
 	window-command: "wmctrl -i -R {window}";
@@ -78,7 +83,7 @@ configuration {
 
 	/*---------- Misc setting ----------*/
 	terminal: "rofi-sensible-terminal";
-	font: "FiraCode Nerd Font Mono 12";
+	font: "Mono 12";
 	sort: false;
 	threads: 0;
 	click-to-exit: true;
