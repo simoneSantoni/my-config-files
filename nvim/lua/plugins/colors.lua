@@ -52,14 +52,14 @@ return {
   {
     "maxmx03/solarized.nvim",
     lazy = false,
-    priority = 1000,
-    opts = {},
-    config = function(_, opts)
-      vim.o.termguicolors = true
-      vim.o.background = "light"
-      require("solarized").setup(opts)
-      vim.cmd.colorscheme("solarized")
-    end,
+    -- priority = 1000,
+    -- opts = {},
+    -- config = function(_, opts)
+    --   vim.o.termguicolors = true
+    --   vim.o.background = "light"
+    --   require("solarized").setup(opts)
+    --   vim.cmd.colorscheme("solarized")
+    -- end,
   },
   {
     "projekt0n/github-nvim-theme",
@@ -98,5 +98,13 @@ return {
   },
   {
     "marko-cerovac/material.nvim",
+    priority = 1000,
+    opts = {},
+    config = function(_, opts)
+      vim.o.termguicolors = true
+      vim.o.background = "dark"
+      require("material").setup(opts)
+      vim.cmd.colorscheme("material")
+    end,
   },
 }
