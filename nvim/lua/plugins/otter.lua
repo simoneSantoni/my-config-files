@@ -11,5 +11,11 @@ return {
       set_filetype = false,
       write_to_disk = false,
     },
+    handle_leading_whitespace = true,
+    -- Suppress language detection warnings
+    verbose = {
+      no_code_found = false,
+      ignore_warnings = true,
+    },
   },
 }

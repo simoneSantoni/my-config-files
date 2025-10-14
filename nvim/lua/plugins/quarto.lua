@@ -23,7 +23,6 @@ return {
         never_run = { "yaml" },
       },
     },
-    activateFence = false,
     dependencies = {
       -- for language features in code cells
       -- configured in lua/plugins/lsp.lua
@@ -34,20 +33,23 @@ return {
   { -- directly open ipynb files as quarto docuements
     -- and convert back behind the scenes
     "GCBallesteros/jupytext.nvim",
-    opts = {
-      custom_language_formatting = {
-        python = {
-          extension = "qmd",
-          style = "quarto",
-          force_ft = "quarto",
+    lazy = false,
+    config = function()
+      require("jupytext").setup({
+        custom_language_formatting = {
+          python = {
+            extension = "qmd",
+            style = "quarto",
+            force_ft = "quarto",
+          },
+          r = {
+            extension = "qmd",
+            style = "quarto",
+            force_ft = "quarto",
+          },
         },
-        r = {
-          extension = "qmd",
-          style = "quarto",
-          force_ft = "quarto",
-        },
-      },
-    },
+      })
+    end,
   },
 
   { -- send code from python/r/qmd documets to a terminal or REPL

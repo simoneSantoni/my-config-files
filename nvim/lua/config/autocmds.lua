@@ -6,11 +6,12 @@
 --
 -- Or remove existing autocmds by their group name (which is prefixed with `lazyvim_` for the defaults)
 -- e.g. vim.api.nvim_del_augroup_by_name("lazyvim_wrap_spell")
--- Disable concealing for Quarto files
-vim.api.nvim_create_autocmd("FileType", {
-  pattern = { "quarto", "qmd", "markdown" },
+
+-- Ensure proper filetype detection for Quarto files
+vim.api.nvim_create_autocmd({ "BufRead", "BufNewFile" }, {
+  pattern = { "*.qmd", "*.rmd" },
   callback = function()
-    vim.opt_local.conceallevel = 0
+    vim.bo.filetype = "quarto"
   end,
-  desc = "Disable concealing in Quarto/Markdown files",
+  desc = "Set filetype for Quarto documents",
 })
