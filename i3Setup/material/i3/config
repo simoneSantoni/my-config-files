@@ -218,14 +218,14 @@ gaps outer 5px
 #client.focused_inactive #333333 #5f676a #ffffff #484e50 #5f676a
 # -- Cyberdream
 # class                 border | background | text | indicator | child_border
-client.focused          #ffbd5e #16181a #ffbd5e #ffbd5e #ffbd5e
-client.unfocused        #7b8496 #16181a  #5ea1ff #7b8496 #7b8496
-client.focused_inactive #7b8496 #16181a #7b8496  #484e50 #5f676a
-# -- Material
+#client.focused          #ffbd5e #16181a #ffbd5e #ffbd5e #ffbd5e
+#client.unfocused        #7b8496 #16181a  #5ea1ff #7b8496 #7b8496
+#client.focused_inactive #7b8496 #16181a #7b8496  #484e50 #5f676a
+# -- Material (matching polybar)
 # class                 border | background | text | indicator | child_border
-client.focused          #11bba3 #11bba3  #25363b #11bba3 #11bba3
-client.unfocused        #395b65 #395b65  #ffcb6b #395b65 #395b65
-client.focused_inactive #395b65 #395b65  #c792ea  #395b65 #395b65
+client.focused          #ffcb6b #b0bec5 #263238 #ffcb6b #ffcb6b
+client.unfocused        #b0bec5 #b0bec5 #546e7a #b0bec5 #b0bec5
+client.focused_inactive #b0bec5 #b0bec5 #546e7a #b0bec5 #b0bec5
 
 # Polybar
 exec_always --no-startup-id ~/.config/polybar/launch.sh
