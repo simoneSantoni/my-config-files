@@ -17,12 +17,12 @@ alias simone Simone Santoni <simone.santoni.1@citystgeorges.ac.uk>
 set imap_user = "sim.santoni@gmail.com"
 # Use the App Password you generated if you have 2-Step Verification
 # If not using 2-Step Verification (not recommended), use your regular Gmail password
-set imap_pass = "pdht cmpz ndtt zijh"
+set imap_pass = "`pass show email/gmail`"
 
 set folder = "imaps://imap.gmail.com:993"    # Your main IMAP mailbox
 set spoolfile = "+INBOX"                     # Where to find new mail
 set postponed = "+[Gmail]/Drafts"            # Save drafts in Gmail's Drafts folder
-set record = "+[Gmail]/Sent Mail"            # Save sent mail in Gmail's Sent Mail folder
+unset record                                  # Gmail automatically saves sent mail
 set trash = "+[Gmail]/Trash"                 # Move deleted mail to Gmail's Trash
 # List important mailboxes (ensure these are correct for your Gmail setup)
 mailboxes +INBOX
@@ -31,6 +31,7 @@ mailboxes "+[Gmail]/Drafts"
 mailboxes "+[Gmail]/Trash"
 mailboxes "+[Gmail]/All Mail"
 mailboxes +admin
+mailboxes +ba
 mailboxes +@citystgeorges
 mailboxes +career
 mailboxes +community
@@ -44,7 +45,7 @@ mailboxes +research
 mailboxes +review
 mailboxes +teaching
 mailboxes +training
-mailboxes +traveling
+mailboxes +travels
 # Add any other labels/folders you want to see easily
 # mailboxes "+MyLabel1"
 # mailboxes "+Work/Projects"
@@ -57,7 +58,7 @@ set imap_keepalive = 300                     # Keep IMAP connection alive
 # ===========================================================================
 set smtp_url = "smtps://sim.santoni@gmail.com@smtp.gmail.com:465/"
 # Use the App Password you generated if you have 2-Step Verification
-set smtp_pass = "pdht cmpz ndtt zijh"
+set smtp_pass = "`pass show email/gmail`"
 
 # ===========================================================================
 # Security & Connection Settings
@@ -143,11 +144,13 @@ set send_charset = "utf-8:iso-8859-1:us-ascii" # send in utf-8
 set sidebar_visible = yes
 set sidebar_width = 25                    # Adjust width as needed
 set sidebar_divider_char = '│'            # Optional: custom divider
-set sidebar_format = "%B%?N?%N/?%n %* %S" # Shows new/total messages and name
+set sidebar_format = "%B %?N?[%N]? %* %S" # Shows folder name and [new] count
 
-# Optional: keybinding to toggle sidebar visibility
-# 'b' is often a default key to toggle the folder browser
-bind index,pager b sidebar-toggle-visible
+# Sidebar keybindings
+bind index,pager b sidebar-toggle-visible    # Toggle sidebar visibility
+bind index,pager \Ck sidebar-prev            # Ctrl-k: Move up in sidebar
+bind index,pager \Cj sidebar-next            # Ctrl-j: Move down in sidebar
+bind index,pager o sidebar-open              # o: Open selected folder
 
 # Ensure your mailboxes are listed so the sidebar can populate them
 # (You should have mailboxes lines from your Gmail setup)
@@ -173,7 +176,7 @@ bind pager g top
 bind pager G bottom
 bind attach,index g first-entry
 bind attach,index G last-entry
-bind index,pager t group-reply
+bind index,pager a group-reply
 
 # ===========================================================================
 # Formatting options
@@ -196,5 +199,5 @@ macro attach s '<save-entry> <bol>~/Documents/attachments/<eol>' 'save attachmen
 auto_view text/html		# automatically show html (mailcap uses lynx)
 
 # color scheme
-#set color_directcolor = yes
-source ~/.config/neomutt/mutt-colors-solarized/solarized-dark-16.muttrc
+set color_directcolor = yes
+source ~/.config/neomutt/colors/mutt-colors-ubuntu-yaru-256.neomuttrc
