@@ -1,0 +1,52 @@
+# Yaru theme (matching kitty/current-theme.conf)
+
+# Font
+set font                        "UbuntuSans Nerd Font 14"
+
+# Default colors
+set default-bg                  "#D5CFCA"
+set default-fg                  "#2C001E"
+
+# Statusbar
+set statusbar-bg                "#2C001E"
+set statusbar-fg                "#F6F5F4"
+
+# Inputbar
+set inputbar-bg                 "#2C001E"
+set inputbar-fg                 "#F6F5F4"
+
+# Notification
+set notification-bg             "#2C001E"
+set notification-fg             "#F6F5F4"
+set notification-error-bg       "#2C001E"
+set notification-error-fg       "#E95420"
+set notification-warning-bg     "#2C001E"
+set notification-warning-fg     "#F99B15"
+
+# Highlighting
+set highlight-color             "#F9C440"
+set highlight-active-color      "#E95420"
+
+# Completion
+set completion-bg               "#D5CFCA"
+set completion-fg               "#2C001E"
+set completion-highlight-bg     "#E95420"
+set completion-highlight-fg     "#F6F5F4"
+set completion-group-bg         "#2C001E"
+set completion-group-fg         "#19B6EE"
+
+# Index mode
+set index-bg                    "#D5CFCA"
+set index-fg                    "#2C001E"
+set index-active-bg             "#E95420"
+set index-active-fg             "#F6F5F4"
+
+# Recolor (for inverting PDF colors)
+set recolor                     "false"
+set recolor-lightcolor          "#D5CFCA"
+set recolor-darkcolor           "#2C001E"
+set recolor-keephue             "false"
+
+# Render
+set render-loading-bg           "#D5CFCA"
+set render-loading-fg           "#2C001E"

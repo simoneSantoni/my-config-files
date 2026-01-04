@@ -1,0 +1,6 @@
+[Desktop Entry]
+Name=Neovide
+Exec=bash -c "source ~/.bashrc && /home/simon/.cargo/bin/neovide"
+Icon=neovide
+Type=Application
+Categories=Utility;TextEditor;

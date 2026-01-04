@@ -1,0 +1,40 @@
+[global]
+    # Colors pulled from ~/.config/kitty/current-theme.conf
+    # background: #300a24, foreground: #eeeeec, selection: #b4d5ff
+    # accent: #3465a4 (color4), muted: #2e3436/#555753 (color0/color8), warn: #d35400/#ff8c42 (color1/color9)
+    background = "#300a24"       # background
+    foreground = "#eeeeec"       # foreground
+    frame_color = "#3465a4"      # color4
+    highlight = "#b4d5ff"        # selection_background
+
+    # Basic layout; tweak as desired.
+    width = 320
+    padding = 10
+    horizontal_padding = 10
+    text_icon_padding = 10
+    transparency = 0
+    frame_width = 2
+    separator_color = frame
+    corner_radius = 6
+    font = UbuntuMono Nerd Font Mono 14
+
+[urgency_low]
+    background = "#2e3436"       # color0
+    foreground = "#eeeeec"
+    frame_color = "#555753"      # color8
+    highlight = "#b4d5ff"
+    timeout = 5
+
+[urgency_normal]
+    background = "#300a24"
+    foreground = "#eeeeec"
+    frame_color = "#3465a4"
+    highlight = "#b4d5ff"
+    timeout = 8
+
+[urgency_critical]
+    background = "#d35400"       # color1
+    foreground = "#eeeeec"       # color15
+    frame_color = "#ff8c42"      # color9
+    highlight = "#300a24"        # selection_foreground
+    timeout = 0
