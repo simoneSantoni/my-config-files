@@ -7,6 +7,10 @@ set font                        "UbuntuSans Nerd Font 14"
 set default-bg                  "#D5CFCA"
 set default-fg                  "#2C001E"
 
+# Clipboard
+set selection-clipboard         "clipboard"
+
+
 # Statusbar
 set statusbar-bg                "#2C001E"
 set statusbar-fg                "#F6F5F4"
@@ -43,8 +47,8 @@ set index-active-fg             "#F6F5F4"
 
 # Recolor (for inverting PDF colors)
 set recolor                     "false"
-set recolor-lightcolor          "#D5CFCA"
-set recolor-darkcolor           "#2C001E"
+set recolor-lightcolor          "#2C001E"
+set recolor-darkcolor           "#D5CFCA"
 set recolor-keephue             "false"
 
 # Render
