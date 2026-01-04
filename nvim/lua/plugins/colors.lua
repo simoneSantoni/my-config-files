@@ -72,15 +72,6 @@ return {
     dependencies = "rktjmp/lush.nvim",
     lazy = false,
     priority = 1000,
-  },
-  {
-    "zenbones-theme/zenbones.nvim",
-    -- Optionally install Lush. Allows for more configuration or extending the colorscheme
-    -- If you don't want to install lush, make sure to set g:zenbones_compat = 1
-    -- In Vim, compat mode is turned on as Lush only works in Neovim.
-    dependencies = "rktjmp/lush.nvim",
-    lazy = false,
-    priority = 1000,
     -- you can set set configuration options here
     -- config = function()
     --     vim.g.zenbones_darken_comments = 45
@@ -96,7 +87,17 @@ return {
       vim.o.termguicolors = true
       vim.o.background = "dark"
       require("material").setup(opts)
-      vim.cmd.colorscheme("material")
     end,
   },
+  {
+    "simoneSantoni/yaru.nvim",
+    lazy = false,
+    priority = 1000,
+    config = function()
+      vim.o.termguicolors = true
+      vim.o.background = "dark"
+      vim.cmd.colorscheme "yaru"
+      vim.g.yaru_transparent_background = true
+    end,
+  }
 }

@@ -1,8 +1,12 @@
 return {
   "3rd/image.nvim",
-  build = false,
+  build = true,
   event = "VeryLazy",
   cond = function()
+    -- Don't load in VS Code or headless mode
+    if vim.g.vscode then
+      return false
+    end
     -- Don't load in headless mode (no terminal available)
     return vim.fn.has("gui_running") == 1 or vim.env.DISPLAY ~= nil or vim.env.WAYLAND_DISPLAY ~= nil
   end,

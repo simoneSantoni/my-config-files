@@ -78,8 +78,9 @@ return {
       endfunction
       ]])
 
+      -- keep default mappings and <Plug> bindings available for custom keymaps
       vim.g.slime_target = "neovim"
-      vim.g.slime_no_mappings = true
+      vim.g.slime_no_mappings = false
       vim.g.slime_python_ipython = 1
     end,
     config = function()

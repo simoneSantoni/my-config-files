@@ -4,175 +4,189 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Overview
 
-This is a LazyVim-based Neovim configuration focused on scientific and academic writing, particularly for literate programming with Quarto/Jupyter notebooks, R, Python, Julia, and LaTeX. The configuration emphasizes REPL-driven development and academic citation management.
+This is a **LazyVim-based Neovim configuration** specialized for scientific computing, data analysis, and literate programming. It extends LazyVim's base functionality with deep integrations for Quarto, Jupyter notebooks, R, Julia, Python, and LaTeX workflows.
 
 ## Architecture
 
-### Plugin System
+### Plugin System: lazy.nvim
 
-The configuration uses lazy.nvim as the plugin manager, bootstrapped in `lua/config/lazy.lua`. Plugins are loaded from:
-- LazyVim base plugins (imported automatically)
-- Custom plugins in `lua/plugins/*.lua` (each file returns a plugin spec)
+- **Bootstrap location**: `lua/config/lazy.lua`
+- Automatically clones lazy.nvim on first run with error handling
+- **Version strategy**: Uses latest git commits (`version = false`) except for stability-critical plugins (e.g., molten-nvim uses `version = "^1.0.0"`)
+- Custom plugins load at startup by default (`lazy = false` in defaults)
+- Update checker enabled but notifications disabled
 
 ### Configuration Structure
 
 ```
-init.lua                    -- Entry point, loads config.lazy
-lua/config/
-  ├── lazy.lua             -- Plugin manager setup
-  ├── options.lua          -- Vim options (extends LazyVim defaults)
-  ├── keymaps.lua          -- Custom keymaps (extends LazyVim defaults)
-  └── autocmds.lua         -- Autocommands (extends LazyVim defaults)
-lua/plugins/               -- Plugin specifications (auto-loaded by lazy.nvim)
+lua/
+├── config/               # Core configuration (extends LazyVim defaults)
+│   ├── lazy.lua         # Plugin manager setup
+│   ├── options.lua      # Additional vim options beyond LazyVim
+│   ├── keymaps.lua      # Custom keybindings only
+│   └── autocmds.lua     # Custom autocommands
+└── plugins/             # Modular plugin configurations (28+ files)
+    ├── quarto.lua       # Quarto + jupytext + vim-slime + img-clip + nabla + molten
+    ├── molten.lua       # Jupyter kernel integration
+    ├── lsp.lua          # Language server configuration
+    ├── treesitter.lua   # Syntax highlighting
+    └── ...              # One file per domain/feature
 ```
 
-### Core Functionality Areas
+**Important**: Each file in `lua/plugins/` returns a Lua table (or array of tables) that lazy.nvim automatically loads. Multiple related plugins can be grouped in a single file.
 
-**Literate Programming & Scientific Computing**
-- `quarto.lua`: Central plugin for Quarto document support, integrates with otter.nvim for embedded language features
-- `otter.nvim`: Provides LSP features for code chunks in Quarto/markdown (LSP disabled, used only for syntax)
-- `jupytext.nvim`: Auto-converts Jupyter notebooks to .qmd format on open/save
-- `molten-nvim`: Alternative code execution backend for notebooks (can replace slime)
+### Plugin Organization Philosophy
 
-**REPL Integration**
-- `vim-slime`: Default code execution method, sends code to Neovim terminal
-- Custom REPL keymaps in `lua/config/keymaps.lua`:
-  - `<C-,><C-,>`: Send paragraph to REPL
-  - `<C-.><C-.>`: Send line to REPL
-- Special handling for Python/IPython via `SlimeOverride_EscapeText_quarto()` in `quarto.lua`
+- **Modular by domain**: Plugins grouped by functionality (e.g., `quarto.lua` contains all literate programming tools)
+- **Extension over override**: Uses `opts` function pattern to extend parent configs rather than replacing them
+- **Explicit dependencies**: Comments document cross-plugin relationships (see `quarto.lua:3-4`, `completions.lua:2`)
+- **Lazy loading**: Uses `ft` (filetype), `event`, `keys` triggers for on-demand loading
 
-**Academic Citation Management**
-- `zotcite.lua`: Zotero integration for citation insertion
-- `telescope-zotero.lua`: Telescope extension for searching Zotero library
-- Both depend on external Zotero installation
+## Key Integration Patterns
 
-**Language Support**
-- Julia: `julia.lua` (julia-vim syntax)
-- R: LazyVim extra + REPL integration
-- Python: LazyVim extra + IPython REPL support
-- LaTeX: `tex.lua` (vimtex with zathura viewer)
+### 1. Literate Programming Stack (Quarto/Jupyter)
 
-**Code Formatting**
-- `conform.lua`: Defines formatters per filetype (manual format: `<leader>m`)
-  - Lua: stylua
-  - Python: isort + black (runs sequentially)
-  - Julia: runic (custom formatter definition using Julia REPL)
-  - JavaScript: prettierd/prettier (stops after first successful formatter)
+**Central file**: `lua/plugins/quarto.lua`
 
-## LazyVim Extras
-
-The configuration uses several LazyVim extras (defined in `lazyvim.json`), which provide pre-configured plugin bundles:
-- Languages: python, r, markdown, json, yaml, tex, sql, toml, thrift
-- Coding: luasnip, yanky, mini-comment, mini-snippets
-- Editor: telescope, fzf, harpoon2, dial, inc-rename, mini-diff
-- Formatting: black, prettier
-- UI: treesitter-context
-- Utilities: git, gitui, dot, mini-hipatterns
-- VSCode: vscode (VSCode compatibility layer)
-
-## Common Development Tasks
-
-### Testing Configuration Changes
-
-Neovim configuration is live-loaded. After editing Lua files:
-1. Either restart Neovim or source the file: `:source %`
-2. For plugin changes: `:Lazy reload <plugin-name>`
-3. Check for errors: `:messages` or `:checkhealth`
-
-### Managing Plugins
-
-```vim
-:Lazy                    " Open plugin manager UI
-:Lazy sync              " Install/update/clean plugins
-:Lazy check             " Check for updates
-:Lazy profile           " View startup performance
+**Dependency chain**:
+```
+quarto.nvim → otter.nvim → treesitter → LSP
+         ↓
+  jupytext.nvim (converts .ipynb ↔ .qmd)
+         ↓
+  vim-slime OR molten-nvim (code execution)
 ```
 
-### Adding a New Plugin
+**Critical details**:
+- `quarto.nvim` requires `treesitter.lua` and `lsp.lua` for language features (see comment on line 3)
+- `otter.nvim` provides multi-language context awareness in code chunks
+- **Code execution backends** are swappable:
+  - Default: `vim-slime` (sends to terminal/REPL)
+  - Alternative: `molten-nvim` (inline Jupyter kernel with image output)
+  - Switch via `quarto_cfg.codeRunner.default_method = "slime"` or `"molten"`
+- Jupytext converts notebooks to Quarto format on open (`.ipynb` → `.qmd`)
 
-1. Create a new file in `lua/plugins/` (e.g., `lua/plugins/myplugin.lua`)
-2. Return a plugin spec table:
+### 2. REPL Integration
+
+**Keybindings** (defined in `lua/config/keymaps.lua`):
+- `<C-,><C-,>`: Send paragraph to REPL (vim-slime)
+- `<C-.><C-.>`: Send line to REPL (vim-slime)
+- `<localleader>mi`: Initialize molten
+- `<localleader>md`: Stop molten
+- `<Esc>` in terminal mode: Exit to normal mode
+
+**Custom slime behavior**: The `SlimeOverride_EscapeText_quarto` function (in `quarto.lua:67-78`) automatically uses `%cpaste` for multi-line Python code in IPython.
+
+### 3. Citation Workflow
+
+- `telescope-zotero.lua`: Browse Zotero library
+- `citations.lua`: Citation insertion
+- `completions.lua`: Adds `cmp_zotcite` source for autocomplete
+
+## Adding Plugins
+
+**Pattern**:
+1. Create `lua/plugins/feature-name.lua`
+2. Return a table (or array) with lazy.nvim spec:
+   ```lua
+   return {
+     {
+       "author/plugin-name",
+       dependencies = { "other/plugin" },
+       ft = { "markdown", "quarto" },  -- Load on filetype
+       opts = {
+         setting = "value"
+       },
+       config = function(_, opts)
+         require("plugin").setup(opts)
+       end
+     }
+   }
+   ```
+3. Restart Neovim (lazy.nvim auto-loads files in `lua/plugins/`)
+
+**Extending existing plugins**: Use `opts` function to merge with parent config:
 ```lua
-return {
-  "username/plugin-name",
-  opts = {
-    -- plugin options
-  },
-}
+opts = function(_, opts)
+  opts.sources = opts.sources or {}
+  table.insert(opts.sources, { name = "new_source" })
+end
 ```
-3. Restart Neovim or run `:Lazy reload`
 
-### Modifying Existing Plugins
+## Customization Guidelines
 
-Plugin files can override LazyVim defaults by returning a spec with the same plugin name. The opts table is merged with defaults.
+### Options & Keymaps
+- **Don't override LazyVim defaults** unless necessary
+- `lua/config/options.lua` only contains **additions** to LazyVim's options
+- `lua/config/keymaps.lua` only contains **custom** mappings
+- See LazyVim defaults: https://github.com/LazyVim/LazyVim/blob/main/lua/lazyvim/config/
 
-### Keymapping Conventions
+### Autocmds
+- Can add custom autocommands in `lua/config/autocmds.lua`
+- LazyVim's autocmds use `lazyvim_*` prefixed groups (can reference but don't modify)
+- See docs: https://lazyvim.github.io/configuration/general#auto-commands
 
-- `<leader>` is typically space (LazyVim default)
-- `<localleader>` is used for filetype-specific bindings (often backslash)
-- REPL bindings use `<C-,>` and `<C-.>` prefix
-- Molten (notebook) bindings use `<localleader>m` prefix
-- Terminal escape: `<Esc>` exits terminal mode
+### Adding Language Support
+1. Check if LazyVim extra exists: https://www.lazyvim.org/extras
+2. Enable via `:LazyExtras` command (auto-updates `lazyvim.json`)
+3. For custom LSP/treesitter setup, extend `lua/plugins/lsp.lua` or `lua/plugins/treesitter.lua`
 
-## Special Considerations
+## LazyVim Extras Enabled
 
-### Quarto Code Execution
+See `lazyvim.json` for active extras. Currently includes:
+- Languages: Python, R, JSON, Markdown, LaTeX, SQL, TOML, YAML
+- Formatting: Black (Python), Prettier (JS/TS)
+- Editor: Telescope, Harpoon2
+- Coding: Yanky (clipboard manager)
+- UI: VSCode keybindings
 
-The config supports two code execution backends:
-1. **vim-slime** (default): Sends code to a Neovim terminal running REPL
-2. **molten-nvim**: Inline output rendering (toggle with `<localleader>mi`/`md`)
+## Important Files
 
-When switching between them, the `quarto.config.codeRunner.default_method` changes dynamically.
+- `lazy-lock.json`: Dependency lock file (auto-generated, commit to version control)
+- `lazyvim.json`: Active LazyVim extras (auto-generated when using `:LazyExtras`)
+- `.neoconf.json`: Neovim LSP configuration (project-specific settings)
 
-### Python/IPython Integration
+## Neovim Commands
 
-The `SlimeOverride_EscapeText_quarto()` function in `quarto.lua` automatically detects Python chunks and uses `%cpaste -q` for multi-line code to IPython, ensuring proper indentation handling.
+- `:Lazy`: Open lazy.nvim UI (view installed plugins, update, sync)
+- `:LazyExtras`: Browse and enable LazyVim extras
+- `:checkhealth`: Diagnose configuration issues
+- `:UpdateRemotePlugins`: Required after installing Python-based plugins (e.g., molten-nvim)
 
-### Julia Formatting
+## Testing Changes
 
-The Runic formatter is invoked via Julia REPL (`julia --project=@runic`), so the Runic.jl package must be installed in the `@runic` environment.
+**Pattern**: Test in a clean environment
+```bash
+# Backup current config
+mv ~/.config/nvim ~/.config/nvim.bak
+mv ~/.local/share/nvim ~/.local/share/nvim.bak
 
-### LaTeX/PDF Viewing
+# Test changes
+ln -s /path/to/test/config ~/.config/nvim
+nvim  # Will auto-bootstrap lazy.nvim
 
-vimtex is configured to use zathura as the PDF viewer (`vim.g.vimtex_view_method = "zathura"`). Change this in `lua/plugins/tex.lua` if using a different viewer.
+# Restore
+rm ~/.config/nvim
+mv ~/.config/nvim.bak ~/.config/nvim
+```
+
+## Plugin Build Requirements
+
+Some plugins need special build steps:
+- **molten-nvim**: Requires `:UpdateRemotePlugins` after install (Python plugin)
+- **LuaSnip**: Runs `make install_jsregexp` during install (compiles regex engine)
+- **Image.nvim**: Terminal with image support (e.g., kitty, wezterm, iTerm2)
 
 ## Troubleshooting
 
-### LSP Issues in Code Chunks
+1. **Plugin not loading**: Check `:Lazy` UI for errors; ensure dependencies installed
+2. **LSP not working**: Run `:LspInfo` and `:checkhealth lsp`
+3. **Treesitter errors**: Run `:checkhealth treesitter` and `:TSUpdate`
+4. **Molten issues**: Ensure Jupyter kernel installed (`pip install jupyter ipykernel`)
+5. **Slime not working**: Check terminal job_id with `<leader>cm` and set target with `<leader>cs`
 
-If LSP features aren't working in Quarto code chunks, check:
-1. Language is listed in `quarto.lua` opts.lspFeatures.languages
-2. Corresponding treesitter parser is installed (see `treesitter.lua`)
-3. LSP server for the language is installed (via Mason or system package manager)
+## Performance Notes
 
-### REPL Not Responding
-
-1. Verify terminal is running the correct REPL (Python → ipython, R → R, Julia → julia)
-2. Use `<leader>cm` to display the terminal job_id and `<leader>cs` to configure slime target
-3. Check `vim.g.slime_target` is set to "neovim" (default in `quarto.lua`)
-
-### YAML Language Server Warning
-
-If you see "WARNING `yaml-language-server` not found", install it via Mason:
-```vim
-:Mason
-" Search for yaml-language-server and install it
-```
-Or ignore if you don't need YAML completion in Quarto files.
-
-### Image Pasting Not Working
-
-The img-clip plugin requires clipboard support and system utilities (xclip on Linux). Verify:
-```bash
-:checkhealth img-clip
-```
-
-### ueberzugpp Missing OpenCV Libraries
-
-If you see `libopencv_imgcodecs.so.412: cannot open shared object file`, the conda-installed ueberzugpp has a version mismatch with OpenCV libraries. Fix by creating symlinks:
-```bash
-cd ~/miniconda3/lib
-ln -sf libopencv_imgcodecs.so.411 libopencv_imgcodecs.so.412
-ln -sf libopencv_imgproc.so.411 libopencv_imgproc.so.412
-ln -sf libopencv_core.so.411 libopencv_core.so.412
-```
+- **Disabled built-in plugins**: gzip, tarPlugin, tohtml, tutor, zipPlugin (see `lua/config/lazy.lua:44-52`)
+- **Lazy loading**: Most plugins load on filetype or keymap trigger
+- **Startup time**: Check with `nvim --startuptime startup.log`

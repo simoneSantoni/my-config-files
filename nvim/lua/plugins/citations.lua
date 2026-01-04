@@ -11,7 +11,4 @@ return {
       })
     end,
   },
-  {
-    "jmbuhr/telescope-zotero.nvim",
-  },
 }
