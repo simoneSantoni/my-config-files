@@ -244,3 +244,6 @@ bindsym $mod+F4 exec --no-startup-id /home/simon/miniconda3/bin/pactl set-source
 # Control screen brightness (requiring `brightnessctl')
 bindsym $mod+F5 exec /usr/bin/brightnessctl set 10%-
 bindsym $mod+F6 exec /usr/bin/brightnessctl set +10%
+
+# Screenshot (requiring `flameshot')
+bindsym Print exec --no-startup-id flameshot gui
