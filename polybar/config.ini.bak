@@ -44,28 +44,27 @@
 #alert = #ff6e5e
 #disabled = #7b8496
 
-; Yaru refined
-background = #2c2c2c
-background-alt = #3c3c3c
-foreground = #d2d2d2
-primary = #E95420
-secondary = #914691
-alert = #C42729
-disabled = #6d6d6d
+; material
+background = #25363b
+background-alt = #25353b
+foreground = #eeffff
+primary = #ffcb6b
+secondary = #c792ea
+alert = #dc6068
+disabled = #eeffff
 
 
 [bar/example]
-monitor = ${env:MONITOR:eDP}
 width = 100%
-height = 22pt
-radius = 5
+height = 28pt
+radius = 10
 
 dpi = 96
 
 bottom = true
 
-background = #2c2c2c
-foreground = #d2d2d2
+background = ${colors.background}
+foreground = ${colors.foreground}
 
 line-size = 3pt
 
@@ -80,12 +79,12 @@ module-margin = 1
 separator = |
 separator-foreground = ${colors.disabled}
 
-font-0 = "UbuntuSans Nerd Font:size=13;0"
+font-0 = "UbuntuMono Nerd Font Mono:size=15;0"
 ;font-1 = "Font Awesome 6 Free:style=Solid:size=13;1"
-font-2 = "Symbols Nerd Font:size=13;2"
+font-2 = "Symbols Nerd Font:size=15;2"
 
 modules-left = xworkspaces
-modules-right = keyboard caffeine theme lxappearance brightness layout-extended layout-external speaker pulseaudio microphone memory cpu battery wlan date
+modules-right = keyboard pulseaudio memory cpu battery wlan eth date
 
 cursor-click = pointer
 cursor-scroll = ns-resize
@@ -146,14 +145,6 @@ label-empty-padding = 1
 ; label-unmounted = %mountpoint% not mounted
 ; label-unmounted-foreground = ${colors.disabled}
 
-[module/speaker]
-type = custom/script
-exec = /home/simon/.config/polybar/scripts/speaker-select.sh
-interval = 2
-click-left = /home/simon/.config/polybar/scripts/speaker-select.sh --cycle
-format = <label>
-label = %output%
-
 [module/pulseaudio]
 type = internal/pulseaudio
 
@@ -169,14 +160,6 @@ label-muted-foreground = ${colors.disabled}
 use-ui-max = true
 interval = 1
 
-[module/microphone]
-type = custom/script
-exec = ~/.config/polybar/scripts/microphone.sh
-interval = 1
-click-left = ~/.config/polybar/scripts/microphone.sh --toggle
-format = <label>
-label = %output%
-
 [module/keyboard]
 type = custom/script
 exec = ~/.config/polybar/scripts/keyboard-layout.sh --get
@@ -186,80 +169,6 @@ format = <label>
 format-padding = 1
 label = %output%
 label-font = 2
-
-[module/caffeine]
-type = custom/script
-exec = ~/.config/polybar/scripts/caffeine.sh
-interval = 1
-click-left = ~/.config/polybar/scripts/caffeine.sh --toggle
-format = <label>
-format-padding = 1
-label = %output%
-
-[module/theme]
-type = custom/script
-exec = ~/.config/polybar/scripts/theme-toggle.sh
-interval = 5
-click-left = ~/.config/polybar/scripts/theme-toggle.sh --toggle
-format = <label>
-format-padding = 1
-label = %output%
-
-[module/lxappearance]
-type = custom/text
-content = 󰏘
-content-padding = 1
-click-left = lxappearance &
-
-[module/brightness]
-type = custom/script
-exec = ~/.config/polybar/scripts/brightness.sh
-interval = 2
-scroll-up = ~/.config/polybar/scripts/brightness.sh --up
-scroll-down = ~/.config/polybar/scripts/brightness.sh --down
-format = <label>
-format-prefix-foreground = ${colors.primary}
-label = %output%
-
-[module/monitor-edp]
-type = custom/script
-exec = ~/.config/polybar/scripts/monitor-toggle.sh --display eDP "eDP"
-interval = 2
-click-left = ~/.config/polybar/scripts/monitor-toggle.sh --toggle eDP
-format = <label>
-label = %output%
-
-[module/monitor-dp]
-type = custom/script
-exec = ~/.config/polybar/scripts/monitor-toggle.sh --display DisplayPort-1 "DP"
-interval = 2
-click-left = ~/.config/polybar/scripts/monitor-toggle.sh --toggle DisplayPort-1
-format = <label>
-label = %output%
-
-[module/screen-layout]
-type = custom/script
-exec = ~/.config/polybar/scripts/screen-layout.sh
-interval = 2
-click-left = ~/.config/polybar/scripts/screen-layout.sh --cycle
-format = <label>
-label = %output%
-
-[module/layout-extended]
-type = custom/script
-exec = layout=$(cat /tmp/screen_layout 2>/dev/null || echo "extend-right"); [ "$layout" = "extend-right" ] && echo "%{F#E95420}󰍹󰁔󰍹%{F-}" || echo "%{F#6d6d6d}󰍹󰁔󰍹%{F-}"
-interval = 2
-click-left = ~/.config/polybar/scripts/screen-layout.sh --set extend-right
-format = <label>
-label = %output%
-
-[module/layout-external]
-type = custom/script
-exec = layout=$(cat /tmp/screen_layout 2>/dev/null || echo "extend-right"); [ "$layout" = "external-only" ] && echo "%{F#E95420}󰶐 󰍹%{F-}" || echo "%{F#6d6d6d}󰶐 󰍹%{F-}"
-interval = 2
-click-left = ~/.config/polybar/scripts/screen-layout.sh --set external-only
-format = <label>
-label = %output%
 
 [module/xkeyboard]
 type = internal/xkeyboard
@@ -275,14 +184,14 @@ label-indicator-background = ${colors.secondary}
 [module/memory]
 type = internal/memory
 interval = 2
-format-prefix = "󰘚 "
+format-prefix = "󰍛 "
 format-prefix-foreground = ${colors.primary}
 label = %percentage_used:2%%
 
 [module/cpu]
 type = internal/cpu
 interval = 2
-format-prefix = "󰻠 "
+format-prefix = " "
 format-prefix-foreground = ${colors.primary}
 label = %percentage:2%%
 
@@ -307,7 +216,7 @@ interface-type = wireless
 ; moonfly
 #label-connected = %{F#36c592}󰤨%{F-} %{F#7fa0ff}%essid%%{F-} %local_ip%
 ; material
-label-connected = %{F#E95420}󰤨%{F-} %{F#E95420}%essid%%{F-} %local_ip%
+label-connected = %{F#11bba3}󰤨%{F-} %{F#c792ea}%essid%%{F-} %local_ip%
 format-connected = <label-connected>
 format-disconnected = %{F#707880}󰤭
 
@@ -317,7 +226,7 @@ interface-type = wired
 ; nightvison
 #label-connected = %{F#34dd34}󰤨%{F-} %{F#98a126}%essid%%{F-} %local_ip%
 ; cyberdream
-label-connected = %{F#E95420}󰈁%{F-} %{F#914691} %local_ip%%{F-}
+label-connected = %{F#5eff6c}󰈁%{F-} %{F#ff5ef1} %local_ip%%{F-}
 ;  moonfly
 #label-connected = %{F#36c592}󰈁%{F-} %{F#7fa0ff} %local_ip%%{F-}
 format-connected = <label-connected>
