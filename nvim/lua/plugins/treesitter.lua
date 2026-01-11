@@ -1,22 +1,27 @@
 return {
-  "nvim-treesitter/nvim-treesitter",
-  opts = {
-    ensure_installed = {
-      "html",
-      "julia",
-      "latex",
-      "markdown",
-      "markdown_inline",
-      "norg",
-      "python",
-      "r",
-      "yaml",
-    },
-    highlight = {
-      enable = true,
-    },
-    indent = {
-      enable = true,
+  {
+    "nvim-treesitter/nvim-treesitter",
+    opts = {
+      ensure_installed = {
+        "css",
+        "html",
+        "latex",
+        "markdown",
+        "markdown_inline",
+        "python",
+        "r",
+        "scss",
+        "svelte",
+        "typst",
+        "vue",
+        "yaml",
+      },
+      highlight = {
+        enable = true,
+      },
+      indent = {
+        enable = true,
+      },
     },
   },
 }

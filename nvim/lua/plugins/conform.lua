@@ -18,18 +18,9 @@ return {
     ---@module "conform"
     ---@type conform.setupOpts
     opts = {
-      -- Runic isn't available 'directly' in conform
-      formatters = {
-        runic = {
-          command = "julia",
-          args = { "--project=@runic", "-e", "using Runic; exit(Runic.main(ARGS))" },
-        },
-      },
-      -- Define your formatters
       formatters_by_ft = {
         lua = { "stylua" },
         python = { "isort", "black" },
-        julia = { "runic" },
         javascript = { "prettierd", "prettier", stop_after_first = true },
       },
       -- Set default options

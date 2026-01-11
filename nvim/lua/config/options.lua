@@ -6,6 +6,11 @@
 vim.opt.wildmode = "longest:full,full"
 vim.opt.wildmenu = true
 
+-- Disable unused providers to suppress healthcheck warnings
+vim.g.loaded_perl_provider = 0
+vim.g.loaded_ruby_provider = 0
+vim.g.loaded_node_provider = 0
+
 -- Neovide settings (disable effects)
 if vim.g.neovide then
   vim.g.neovide_cursor_vfx_mode = ""

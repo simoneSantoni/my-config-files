@@ -1,94 +1,7 @@
+-- Active colorscheme (yaru)
+-- Other colorschemes are lazy-loaded and can be activated with :colorscheme <name>
 return {
-  {
-    "mathofprimes/nightvision-nvim",
-  },
-  {
-    "LazyVim/LazyVim",
-  },
-
-  {
-    "EdenEast/nightfox.nvim",
-  },
-
-  {
-    "gustavoprietop/doom-themes.nvim",
-  },
-
-  {
-    "scottmckendry/cyberdream.nvim",
-  },
-
-  {
-    "rebelot/kanagawa.nvim",
-    priority = 1000,
-    opts = {},
-    --config = function(_, opts)
-    --  vim.o.termguicolors = true
-    --  vim.o.background = "light"
-    --  require("kanagawa").setup(opts)
-    --  vim.cmd.colorscheme("kanagawa-lotus")
-    --end,
-  },
-
-  {
-    "nlknguyen/papercolor-theme",
-  },
-
-  {
-    "whatyouhide/vim-gotham",
-  },
-  {
-    "Mofiqul/vscode.nvim",
-  },
-  {
-    "rose-pine/neovim",
-  },
-  {
-    "bluz71/vim-moonfly-colors",
-  },
-  {
-    "craftzdog/solarized-osaka.nvim",
-  },
-  {
-    "maxmx03/solarized.nvim",
-  },
-  {
-    "projekt0n/github-nvim-theme",
-    name = "github-theme",
-    -- lazy = false, -- make sure we load this during startup if it is your main colorscheme
-    -- priority = 1000, -- make sure to load this before all the other start plugins
-    -- opts = {},
-    -- config = function(_, opts)
-    --   vim.o.termguicolors = true
-    --   vim.o.background = "dark"
-    --   vim.cmd("colorscheme github_dark_colorblind")
-    -- end,
-  },
-  {
-    "zenbones-theme/zenbones.nvim",
-    -- Optionally install Lush. Allows for more configuration or extending the colorscheme
-    -- If you don't want to install lush, make sure to set g:zenbones_compat = 1
-    -- In Vim, compat mode is turned on as Lush only works in Neovim.
-    dependencies = "rktjmp/lush.nvim",
-    lazy = false,
-    priority = 1000,
-    -- you can set set configuration options here
-    -- config = function()
-    --     vim.g.zenbones_darken_comments = 45
-    --     vim.cmd.colorscheme('zenbones')
-    -- end
-  },
-  {
-    "marko-cerovac/material.nvim",
-    lazy = false,
-    priority = 1000,
-    opts = {},
-    config = function(_, opts)
-      vim.o.termguicolors = true
-      vim.o.background = "dark"
-      require("material").setup(opts)
-    end,
-  },
+  -- Active colorscheme
   {
     "simoneSantoni/yaru.nvim",
     lazy = false,
@@ -96,8 +9,29 @@ return {
     config = function()
       vim.o.termguicolors = true
       vim.o.background = "dark"
-      vim.cmd.colorscheme "yaru"
+      vim.cmd.colorscheme("yaru")
       vim.g.yaru_transparent_background = true
     end,
-  }
+  },
+
+  -- Alternative colorschemes (lazy-loaded, use :colorscheme to switch)
+  { "mathofprimes/nightvision-nvim", lazy = true },
+  { "EdenEast/nightfox.nvim", lazy = true },
+  { "gustavoprietop/doom-themes.nvim", lazy = true },
+  { "scottmckendry/cyberdream.nvim", lazy = true },
+  { "rebelot/kanagawa.nvim", lazy = true },
+  { "nlknguyen/papercolor-theme", lazy = true },
+  { "whatyouhide/vim-gotham", lazy = true },
+  { "Mofiqul/vscode.nvim", lazy = true },
+  { "rose-pine/neovim", name = "rose-pine", lazy = true },
+  { "bluz71/vim-moonfly-colors", lazy = true },
+  { "craftzdog/solarized-osaka.nvim", lazy = true },
+  { "maxmx03/solarized.nvim", lazy = true },
+  { "projekt0n/github-nvim-theme", name = "github-theme", lazy = true },
+  { "marko-cerovac/material.nvim", lazy = true },
+  {
+    "zenbones-theme/zenbones.nvim",
+    dependencies = "rktjmp/lush.nvim",
+    lazy = true,
+  },
 }

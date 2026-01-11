@@ -1,4 +1,4 @@
 return {
-  -- Gemini CLI integration
-  "JonRoosevelt/gemini-cli.nvim",
+  -- Gemini CLI integration (disabled - conflicts with nvim-gemini-companion)
+  -- "JonRoosevelt/gemini-cli.nvim",
 }
