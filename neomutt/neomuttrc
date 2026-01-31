@@ -37,10 +37,10 @@ mailboxes +career
 mailboxes +community
 mailboxes +conferences
 mailboxes +grants
-mailboxes +IT
-mailboxes +LBS
+mailboxes +it
+mailboxes +lbs
 mailboxes +outreach
-mailboxes +phdSupervision
+mailboxes +phd
 mailboxes +research
 mailboxes +review
 mailboxes +teaching
@@ -195,7 +195,7 @@ set mailcap_path = "~/.config/neomutt/mailcap"
 # open attachments with mailcap with <return>
 bind attach <return> view-mailcap
 # save attachments to a folder
-macro attach s '<save-entry> <bol>~/Documents/attachments/<eol>' 'save attachment'
+macro attach s '<save-entry> <bol>~/mail/down/<eol>' 'save attachment'
 auto_view text/html		# automatically show html (mailcap uses lynx)
 
 # color scheme

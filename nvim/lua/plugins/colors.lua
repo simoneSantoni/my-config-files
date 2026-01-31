@@ -34,4 +34,5 @@ return {
     dependencies = "rktjmp/lush.nvim",
     lazy = true,
   },
+  { "simoneSantoni/duotone.nvim", lazy = true },
 }
