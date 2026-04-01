@@ -7,7 +7,7 @@ return {
     opts = {
       lspFeatures = {
         enabled = true,
-        languages = { "r", "python", "julia", "bash" },
+        languages = { "r", "python", "bash" },
         chunks = "curly", -- 'curly' or 'all'
         diagnostics = {
           enabled = true,
@@ -59,7 +59,7 @@ return {
     init = function()
       vim.b["quarto_is_python_chunk"] = false
       Quarto_is_in_python_chunk = function()
-        require("otter.tools.functions").is_otter_language_context("python")
+        vim.b["quarto_is_python_chunk"] = require("otter.tools.functions").is_otter_language_context("python")
       end
 
       vim.cmd([[

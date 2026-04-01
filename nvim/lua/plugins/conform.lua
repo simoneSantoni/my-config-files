@@ -22,6 +22,14 @@ return {
         lua = { "stylua" },
         python = { "isort", "black" },
         javascript = { "prettierd", "prettier", stop_after_first = true },
+        julia = { "runic" },
+      },
+      formatters = {
+        runic = {
+          command = "/home/simon/.local/bin/runic",
+          args = { "-" },
+          stdin = true,
+        },
       },
       -- Set default options
       default_format_opts = {

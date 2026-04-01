@@ -7,10 +7,9 @@ return {
     lazy = false,
     priority = 1000,
     config = function()
-      vim.o.termguicolors = true
       vim.o.background = "dark"
-      vim.cmd.colorscheme("yaru")
       vim.g.yaru_transparent_background = true
+      vim.cmd.colorscheme("yaru")
     end,
   },
 

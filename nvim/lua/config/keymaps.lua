@@ -3,8 +3,8 @@
 -- Add any additional keymaps here
 
 -- Send code to REPL
-vim.cmd("nmap <c-,><c-,> <Plug>SlimeParagraphSend")
-vim.cmd("nmap <c-.><c-.> <Plug>SlimeLineSend")
+vim.keymap.set("n", "<C-,><C-,>", "<Plug>SlimeParagraphSend", { desc = "Send paragraph to REPL" })
+vim.keymap.set("n", "<C-.><C-.>", "<Plug>SlimeLineSend", { desc = "Send line to REPL" })
 
 -- Leave terminal mode
 vim.keymap.set("t", "<Esc>", "<C-\\><C-n>", { silent = true })
