@@ -8,19 +8,15 @@ This is a LazyVim-based Neovim configuration. LazyVim is a Neovim setup powered 
 
 ## Architecture
 
-### Directory Structure
-
 - `init.lua` - Entry point, loads `config.lazy`
-- `lua/config/` - Core configuration
-  - `lazy.lua` - lazy.nvim bootstrap and plugin loader setup
-  - `options.lua` - Vim options (loaded before plugins)
-  - `keymaps.lua` - Custom keymaps (loaded on VeryLazy event)
-- `lua/plugins/` - Plugin specifications (auto-loaded by lazy.nvim)
-- `lazyvim.json` - LazyVim extras configuration and version tracking
+- `lua/config/` - Core configuration: `lazy.lua` (bootstrap), `options.lua` (loaded before plugins), `keymaps.lua` (loaded on VeryLazy event)
+- `lua/plugins/` - Plugin specifications (auto-loaded by lazy.nvim, each file returns a table of plugin specs)
+- `lazyvim.json` - LazyVim extras: nvim-cmp, git, json, markdown, python, r, sql, tex, yaml
+- `queries/` - Custom treesitter queries (taskjuggler)
 
 ### Plugin Configuration Pattern
 
-Each file in `lua/plugins/` returns a table of plugin specs. To extend a LazyVim plugin:
+When extending a LazyVim plugin, always guard against nil opts:
 
 ```lua
 return {
@@ -34,35 +30,45 @@ return {
 }
 ```
 
-### Enabled LazyVim Extras
+### Key Plugin Interactions
 
-Configured in `lazyvim.json`: nvim-cmp, git, json, markdown, python, r, sql, tex, yaml.
+The Quarto/R/REPL stack has interdependencies that are important to understand:
 
-## Key Customizations
+1. **quarto-nvim** (`quarto.lua`) depends on **otter.nvim** (`otter.lua`) for embedded language support in code cells (R, Python, bash)
+2. **vim-slime** (`quarto.lua`) is the default REPL sender; **molten-nvim** is an alternative that can be toggled at runtime (`<localleader>mi` / `<localleader>md`), which swaps the quarto codeRunner method
+3. **jupytext.nvim** (`quarto.lua`) converts `.ipynb` files to `.qmd` format transparently
+4. **Zotero citations** (`completions.lua`) require zotcite as a top-level plugin (not just a dependency) so its ftplugin/ files are sourced, which start the zotero_ls LSP. Custom autocmds trigger cmp on `@` in markdown/quarto and `{` after `\cite` in tex
 
-- **Completion**: Uses nvim-cmp (via extras) with sources for R (cmp-r) and Zotero citations (cmp_zotcite)
-- **Quarto/R workflow**: quarto-nvim, vim-slime for REPL interaction, otter.nvim for embedded language support
-- **REPL keymaps**: `<C-,><C-,>` sends paragraph, `<C-.><C-.>` sends line to REPL
-- **Colorscheme**: yaru (active), with many alternatives lazy-loaded
-- **Neovide**: All visual effects disabled when running in Neovide
+### Formatting
+
+Configured via conform.nvim (`conform.lua`) with format-on-save:
+- Lua: stylua
+- Python: isort + black (chained)
+- JavaScript: prettierd with prettier fallback
+- Julia: runic (custom binary at `/home/simon/.local/bin/runic`)
+- Manual format: `<leader>m`
+
+### Colorscheme
+
+- **Terminal**: yaru (from `simoneSantoni/yaru.nvim`), transparent background
+- **Neovide**: github_dark (from github-nvim-theme), yaru is skipped
+- Many alternatives lazy-loaded, switchable with `:colorscheme`
 
 ## System Dependencies
 
-Required external tools for full functionality:
-
-| Feature | Dependencies | Install |
-|---------|-------------|---------|
-| Formatting | stylua, black, isort, prettier | `pip install black isort` / `npm i -g prettier` / `cargo install stylua` |
-| Julia formatting | Julia + Runic package | `julia -e 'using Pkg; Pkg.add("Runic")'` |
-| LaTeX | texlive, zathura, xdotool | System package manager |
-| R support | R | System package manager or conda |
-| Image rendering | ueberzug, ImageMagick | `pip install ueberzug` + system ImageMagick |
-| Zotero citations | Zotero with Better BibTeX | Manual install |
-| Jupyter/Molten | Python 3.11+, jupyter, pynvim | `pip install jupyter pynvim` |
+| Feature | Dependencies |
+|---------|-------------|
+| Formatting | stylua, black, isort, prettier/prettierd |
+| Julia formatting | Julia + Runic binary at `~/.local/bin/runic` |
+| LaTeX | texlive, zathura, xdotool |
+| R support | R (resolved dynamically via PATH) |
+| Image rendering | ueberzug, ImageMagick |
+| Zotero citations | Zotero with Better BibTeX |
+| Jupyter/Molten | Python 3.11+, jupyter, pynvim |
 
 ## Known Issues
 
-- **jupytext healthcheck error**: The plugin uses deprecated health API (`report_start`). This is harmless - the plugin works correctly, only the healthcheck fails. Wait for upstream fix.
+- **jupytext healthcheck error**: The plugin uses deprecated health API (`report_start`). Harmless -- the plugin works, only the healthcheck fails. Wait for upstream fix.
 
 ## Validation
 

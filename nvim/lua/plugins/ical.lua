@@ -15,7 +15,7 @@ return {
     },
     opts = {
       calendars = {
-        { name = "My cal", path = "/home/simon/githubRepos/organization/calendar/source/", color = "#87CEEB", recursive = true }
+        { name = "My cal", path = "/home/simon/githubRepos/organization/agenda/source/", color = "#87CEEB", recursive = true },
         --{ name = "Work", path = "~/calendars/work.ics", color = "#FFD700" },
       },
     },

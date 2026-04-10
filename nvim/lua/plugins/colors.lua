@@ -9,7 +9,9 @@ return {
     config = function()
       vim.o.background = "dark"
       vim.g.yaru_transparent_background = true
-      vim.cmd.colorscheme("yaru")
+      if not vim.g.neovide then
+        vim.cmd.colorscheme("yaru")
+      end
     end,
   },
 
@@ -26,7 +28,17 @@ return {
   { "bluz71/vim-moonfly-colors", lazy = true },
   { "craftzdog/solarized-osaka.nvim", lazy = true },
   { "maxmx03/solarized.nvim", lazy = true },
-  { "projekt0n/github-nvim-theme", name = "github-theme", lazy = true },
+  {
+    "projekt0n/github-nvim-theme",
+    name = "github-theme",
+    lazy = not vim.g.neovide,
+    priority = 1000,
+    config = function()
+      if vim.g.neovide then
+        vim.cmd.colorscheme("github_dark")
+      end
+    end,
+  },
   { "marko-cerovac/material.nvim", lazy = true },
   {
     "zenbones-theme/zenbones.nvim",

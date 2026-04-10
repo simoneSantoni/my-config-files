@@ -4,12 +4,11 @@ return {
     build = true,
     event = "VeryLazy",
     cond = function()
-      -- Don't load in VS Code or headless mode
-      if vim.g.vscode then
+      -- Don't load in GUI frontends (no terminal for ueberzug) or headless mode
+      if vim.g.vscode or vim.g.neovide then
         return false
       end
-      -- Don't load in headless mode (no terminal available)
-      return vim.fn.has("gui_running") == 1 or vim.env.DISPLAY ~= nil or vim.env.WAYLAND_DISPLAY ~= nil
+      return vim.env.DISPLAY ~= nil or vim.env.WAYLAND_DISPLAY ~= nil
     end,
     opts = {
       backend = "ueberzug",
