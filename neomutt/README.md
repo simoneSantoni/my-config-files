@@ -90,7 +90,7 @@ source ~/.config/neomutt/colors/mutt-colors-ubuntu-yaru-256.neomuttrc
 # Solarized Dark
 source ~/.config/neomutt/colors/solarized-dark-256.neomuttrc
 
-# Neonwolf
+# Meadow
 source ~/.config/neomutt/colors/mutt-colors-neonwolf-256.muttrc
 
 # Nightvision

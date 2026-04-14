@@ -24,7 +24,7 @@ neomutt -n
 - `neomuttrc` - Main configuration file (IMAP/SMTP settings, keybindings, UI options)
 - `mailcap` - MIME type handlers (HTML via lynx, PDF via firefox)
 - `signature` - Email signature
-- `colors/` - All color schemes (ubuntu-yaru, solarized, neonwolf, nightvision)
+- `colors/` - All color schemes (ubuntu-yaru, solarized, meadow, nightvision)
 
 ## Key Configuration Details
 
