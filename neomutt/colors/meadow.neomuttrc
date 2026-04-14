@@ -1,0 +1,140 @@
+# vim: filetype=neomuttrc
+#
+# Base2Tone Meadow Dark color scheme for NeoMutt
+# Based on Kitty theme by Bram de Haan (atelierbram)
+# https://github.com/atelierbram/Base2Tone-kitty
+#
+# Duotone theme: slate blue with bright lime green accents
+#
+# Palette:
+#   bg:              #192834 (slate blue background)
+#   bg_alt:          #223644 (selection/highlight)
+#   bg_alt2:         #335166 (active border / highlight)
+#   border:          #466b86 (medium slate)
+#   fg:              #7b9eb7 (muted slate blue)
+#   fg_dim:          #3d5e76 (dim slate)
+#   fg_mid:          #4299d7 (blue)
+#   white:           #d1ecff (bright)
+#   white_bright:    #fafbf9 (brightest)
+#   light_blue:      #afddfe (light accent blue)
+#   blue:            #47adf5 (cyan-blue)
+#   blue_deep:       #2172ab (deep blue)
+#   blue_alt:        #277fbe (alt blue / "red" slot)
+#   green:           #80bf40 (primary green)
+#   green_bright:    #8cdd3c (bright green)
+#   green_dark:      #59931f (dark green)
+#   green_mid:       #73b234 (mid green)
+#   lime:            #a6f655 (bright lime accent)
+#   cursor:          #4d8217 (dark green)
+#
+# Requires: set color_directcolor = yes (in neomuttrc)
+
+# basic colors ---------------------------------------------------------
+color normal        #7b9eb7        #192834
+color error         #192834        #a6f655
+color tilde         #466b86        #192834
+color message       #d1ecff        #192834
+color markers       #8cdd3c        #223644
+color attachment    #7b9eb7        #192834
+color search        #192834        #a6f655
+color status        #fafbf9        #335166
+color indicator     #192834        #8cdd3c
+
+# tree (arrow in threads)
+color tree          #80bf40        #192834
+
+# basic monochrome screen
+mono  bold          bold
+mono  underline     underline
+mono  indicator     reverse
+mono  error         bold
+
+# sidebar --------------------------------------------------------------
+color sidebar_indicator  #192834  #8cdd3c
+color sidebar_highlight  #d1ecff  #223644
+color sidebar_divider    #466b86  #192834
+color sidebar_flagged    #a6f655  #192834
+color sidebar_new        #afddfe  #192834
+color sidebar_ordinary   #7b9eb7  #192834
+color sidebar_spoolfile  #8cdd3c  #192834
+
+# index ----------------------------------------------------------------
+color index         #7b9eb7        #192834         "~A"        # all messages
+color index         #a6f655        #192834         "~E"        # expired messages
+color index         #afddfe        #192834         "~N"        # new messages
+color index         #4299d7        #192834         "~O"        # old messages
+color index         #3d5e76        #192834         "~Q"        # messages that have been replied to
+color index         #7b9eb7        #192834         "~R"        # read messages
+color index         #afddfe        #192834         "~U"        # unread messages
+color index         #afddfe        #192834         "~U~$"      # unread, unreferenced messages
+color index         #7b9eb7        #192834         "~v"        # messages part of a collapsed thread
+color index         #3d5e76        #192834         "~P"        # messages from me
+color index         #80bf40        #192834         "~p!~F"     # messages to me
+color index         #80bf40        #192834         "~N~p!~F"   # new messages to me
+color index         #80bf40        #192834         "~U~p!~F"   # unread messages to me
+color index         #3d5e76        #192834         "~R~p!~F"   # read messages to me
+color index         #8cdd3c        #192834         "~F"        # flagged messages
+color index         #8cdd3c        #192834         "~F~p"      # flagged messages to me
+color index         #8cdd3c        #192834         "~N~F"      # new flagged messages
+color index         #8cdd3c        #192834         "~N~F~p"    # new flagged messages to me
+color index         #8cdd3c        #192834         "~U~F~p"    # unread flagged messages to me
+color index         #192834        #3d5e76         "~D"        # deleted messages
+color index         #7b9eb7        #192834         "~v~(!~N)"  # collapsed thread with no unread
+color index         #a6f655        #192834         "~v~(~N)"   # collapsed thread with some unread
+color index         #afddfe        #192834         "~N~v~(~N)" # collapsed thread with unread parent
+color index         #8cdd3c        #223644         "~v~(~F)!~N"    # collapsed thread with flagged, no unread
+color index         #a6f655        #223644         "~v~(~F~N)"     # collapsed thread with some unread & flagged
+color index         #afddfe        #223644         "~N~v~(~F~N)"   # collapsed thread with unread parent & flagged
+color index         #afddfe        #223644         "~N~v~(~F)"     # collapsed thread with unread parent, flagged
+color index         #80bf40        #223644         "~v~(~p)"       # collapsed thread with messages to me
+color index         #a6f655        #3d5e76         "~v~(~D)"       # thread with deleted messages
+
+# message headers ------------------------------------------------------
+color hdrdefault    #7b9eb7        #192834
+color header        #7b9eb7        #192834         "^(From)"
+color header        #afddfe        #192834         "^(Subject)"
+color header        #80bf40        #192834         "^(To)"
+color header        #a6f655        #192834         "^(Date)"
+
+# body -----------------------------------------------------------------
+color quoted        #4299d7        #192834
+color quoted1       #80bf40        #192834
+color quoted2       #a6f655        #192834
+color quoted3       #47adf5        #192834
+color quoted4       #3d5e76        #192834
+
+color signature     #3d5e76        #192834
+color bold          #fafbf9        #192834
+color underline     #fafbf9        #192834
+color normal        #7b9eb7        #192834
+
+# emoticons
+color body          #a6f655        #192834         "[;:][-o][)/(|]"
+color body          #a6f655        #192834         "[;:][)(|]"
+color body          #a6f655        #192834         "[ ][*][^*]*[*][ ]?"
+color body          #a6f655        #192834         "[ ]?[*][^*]*[*][ ]"
+
+# common acronyms
+color body          #3d5e76        #192834         "[*]?((N)?ACK|CU|LOL|SCNR|BRB|BTW|CWYL|\
+                                                     |FWIW|vbg|GD&R|HTH|HTHBE|IMHO|IMNSHO|\
+                                                     |IRL|RTFM|ROTFL|ROFL|YMMV)[*]?"
+
+# pgp/gpg signatures
+color body          #192834        #8cdd3c         "(BAD signature)"
+color body          #80bf40        #192834         "(Good signature)"
+color body          #192834        #192834         "^gpg: Good signature .*"
+color body          #3d5e76        #192834         "^gpg: "
+color body          #3d5e76        #8cdd3c         "^gpg: BAD signature from.*"
+mono  body          bold                            "^gpg: Good signature"
+mono  body          bold                            "^gpg: BAD signature from.*"
+
+# URLs and email addresses
+color body          #47adf5        #192834         "([a-z][a-z0-9+-]*://(((([a-z0-9_.!~*'();:&=+$,-]|%[0-9a-f][0-9a-f])*@)?((([a-z0-9]([a-z0-9-]*[a-z0-9])?)\\.)*([a-z]([a-z0-9-]*[a-z0-9])?)\\.?|[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+)(:[0-9]+)?)|([a-z0-9_.!~*'()$,;:@&=+-]|%[0-9a-f][0-9a-f])+)(/([a-z0-9_.!~*'():@&=+$,-]|%[0-9a-f][0-9a-f])*(;([a-z0-9_.!~*'():@&=+$,-]|%[0-9a-f][0-9a-f])*)*(/([a-z0-9_.!~*'():@&=+$,-]|%[0-9a-f][0-9a-f])*(;([a-z0-9_.!~*'():@&=+$,-]|%[0-9a-f][0-9a-f])*)*)*)?(\\?([a-z0-9_.!~*'();/?:@&=+$,-]|%[0-9a-f][0-9a-f])*)?(#([a-z0-9_.!~*'();/?:@&=+$,-]|%[0-9a-f][0-9a-f])*)?|(www|ftp)\\.(([a-z0-9]([a-z0-9-]*[a-z0-9])?)\\.)*([a-z]([a-z0-9-]*[a-z0-9])?)\\.?(:[0-9]+)?(/([-a-z0-9_.!~*'():@&=+$,]|%[0-9a-f][0-9a-f])*(;([-a-z0-9_.!~*'():@&=+$,]|%[0-9a-f][0-9a-f])*)*(/([-a-z0-9_.!~*'():@&=+$,]|%[0-9a-f][0-9a-f])*(;([-a-z0-9_.!~*'():@&=+$,]|%[0-9a-f][0-9a-f])*)*)*)?(\\?([-a-z0-9_.!~*'();/?:@&=+$,]|%[0-9a-f][0-9a-f])*)?(#([-a-z0-9_.!~*'();/?:@&=+$,]|%[0-9a-f][0-9a-f])*)?)[^].,:;!)? \t\r\n<>\"]"
+color body          #afddfe        #192834         "[-a-z_0-9.%$]+@[-a-z_0-9.]+\\.[-a-z][-a-z]+"
+
+# compose view ---------------------------------------------------------
+color compose header            #7b9eb7        #192834
+color compose security_encrypt  #80bf40        #192834
+color compose security_sign     #80bf40        #192834
+color compose security_both     #80bf40        #192834
+color compose security_none     #3d5e76        #192834

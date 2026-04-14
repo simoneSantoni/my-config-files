@@ -1,7 +1,12 @@
--- Active colorscheme (yaru)
+-- Active colorscheme depends on hostname and neovide
 -- Other colorschemes are lazy-loaded and can be activated with :colorscheme <name>
+local hostname = vim.uv.os_gethostname()
+local is_stellaris = hostname == "stellaris"
+local is_t14 = hostname == "t14"
+local is_t16 = hostname == "t16"
+local is_t490s = hostname == "t490s"
 return {
-  -- Active colorscheme
+  -- Active colorscheme (yaru, default for non-tuxedo terminal)
   {
     "simoneSantoni/yaru.nvim",
     lazy = false,
@@ -9,7 +14,7 @@ return {
     config = function()
       vim.o.background = "dark"
       vim.g.yaru_transparent_background = true
-      if not vim.g.neovide then
+      if not vim.g.neovide and (is_t14 or (not is_stellaris and not is_t16 and not is_t490s)) then
         vim.cmd.colorscheme("yaru")
       end
     end,
@@ -31,11 +36,13 @@ return {
   {
     "projekt0n/github-nvim-theme",
     name = "github-theme",
-    lazy = not vim.g.neovide,
+    lazy = not vim.g.neovide and not is_t490s,
     priority = 1000,
     config = function()
       if vim.g.neovide then
         vim.cmd.colorscheme("github_dark")
+      elseif is_t490s then
+        vim.cmd.colorscheme("github_light")
       end
     end,
   },
@@ -45,5 +52,24 @@ return {
     dependencies = "rktjmp/lush.nvim",
     lazy = true,
   },
-  { "simoneSantoni/duotone.nvim", lazy = true },
+  {
+    "simoneSantoni/duotone.nvim",
+    lazy = not is_t16,
+    priority = 1000,
+    config = function()
+      if is_t16 and not vim.g.neovide then
+        vim.cmd.colorscheme("duotone")
+      end
+    end,
+  },
+  {
+    "simoneSantoni/meadow.nvim",
+    lazy = not is_stellaris,
+    priority = 1000,
+    config = function()
+      if is_stellaris and not vim.g.neovide then
+        vim.cmd.colorscheme("meadow")
+      end
+    end,
+  },
 }

@@ -1,0 +1,131 @@
+# vim: filetype=neomuttrc
+#
+# Base2Tone Meadow Dark color scheme for NeoMutt (256-color fallback)
+# Based on Kitty theme by Bram de Haan (atelierbram)
+# https://github.com/atelierbram/Base2Tone-kitty
+#
+# 256-color approximation — works without color_directcolor.
+#
+# Palette mapping (hex -> closest 256 color):
+#   #192834 slate blue bg      -> color235
+#   #223644 selection bg       -> color236
+#   #335166 highlight bg       -> color238
+#   #466b86 border             -> color60
+#   #3d5e76 dim slate          -> color60
+#   #7b9eb7 muted slate fg     -> color109
+#   #afddfe light blue         -> color153
+#   #4299d7 blue               -> color68
+#   #47adf5 cyan-blue          -> color75
+#   #80bf40 green              -> color106
+#   #8cdd3c bright green       -> color112
+#   #a6f655 lime accent        -> color149
+#   #d1ecff pale blue/white    -> color189
+#   #fafbf9 white              -> color255
+
+# basic colors ---------------------------------------------------------
+color normal        color109       color235
+color error         color235       color149
+color tilde         color60        color235
+color message       color189       color235
+color markers       color112       color236
+color attachment    color109       color235
+color search        color235       color149
+color status        color255       color238
+color indicator     color235       color112
+
+color tree          color106       color235
+
+mono  bold          bold
+mono  underline     underline
+mono  indicator     reverse
+mono  error         bold
+
+# sidebar --------------------------------------------------------------
+color sidebar_indicator  color235  color112
+color sidebar_highlight  color189  color236
+color sidebar_divider    color60   color235
+color sidebar_flagged    color149  color235
+color sidebar_new        color153  color235
+color sidebar_ordinary   color109  color235
+color sidebar_spoolfile  color112  color235
+
+# index ----------------------------------------------------------------
+color index         color109       color235        "~A"
+color index         color149       color235        "~E"
+color index         color153       color235        "~N"
+color index         color68        color235        "~O"
+color index         color60        color235        "~Q"
+color index         color109       color235        "~R"
+color index         color153       color235        "~U"
+color index         color153       color235        "~U~$"
+color index         color109       color235        "~v"
+color index         color60        color235        "~P"
+color index         color106       color235        "~p!~F"
+color index         color106       color235        "~N~p!~F"
+color index         color106       color235        "~U~p!~F"
+color index         color60        color235        "~R~p!~F"
+color index         color112       color235        "~F"
+color index         color112       color235        "~F~p"
+color index         color112       color235        "~N~F"
+color index         color112       color235        "~N~F~p"
+color index         color112       color235        "~U~F~p"
+color index         color235       color60         "~D"
+color index         color109       color235        "~v~(!~N)"
+color index         color149       color235        "~v~(~N)"
+color index         color153       color235        "~N~v~(~N)"
+color index         color112       color236        "~v~(~F)!~N"
+color index         color149       color236        "~v~(~F~N)"
+color index         color153       color236        "~N~v~(~F~N)"
+color index         color153       color236        "~N~v~(~F)"
+color index         color106       color236        "~v~(~p)"
+color index         color149       color60         "~v~(~D)"
+
+# message headers ------------------------------------------------------
+color hdrdefault    color109       color235
+color header        color109       color235        "^(From)"
+color header        color153       color235        "^(Subject)"
+color header        color106       color235        "^(To)"
+color header        color149       color235        "^(Date)"
+
+# body -----------------------------------------------------------------
+color quoted        color68        color235
+color quoted1       color106       color235
+color quoted2       color149       color235
+color quoted3       color75        color235
+color quoted4       color60        color235
+
+color signature     color60        color235
+color bold          color255       color235
+color underline     color255       color235
+color normal        color109       color235
+
+# emoticons
+color body          color149       color235        "[;:][-o][)/(|]"
+color body          color149       color235        "[;:][)(|]"
+color body          color149       color235        "[ ][*][^*]*[*][ ]?"
+color body          color149       color235        "[ ]?[*][^*]*[*][ ]"
+
+# common acronyms
+color body          color60        color235        "[*]?((N)?ACK|CU|LOL|SCNR|BRB|BTW|CWYL|\
+                                                     |FWIW|vbg|GD&R|HTH|HTHBE|IMHO|IMNSHO|\
+                                                     |IRL|RTFM|ROTFL|ROFL|YMMV)[*]?"
+
+# pgp/gpg signatures
+color body          color235       color112        "(BAD signature)"
+color body          color106       color235        "(Good signature)"
+color body          color235       color235        "^gpg: Good signature .*"
+color body          color60        color235        "^gpg: "
+color body          color60        color112        "^gpg: BAD signature from.*"
+mono  body          bold                            "^gpg: Good signature"
+mono  body          bold                            "^gpg: BAD signature from.*"
+
+# URLs and email addresses
+color body          color75        color235        "([a-z][a-z0-9+-]*://(((([a-z0-9_.!~*'();:&=+$,-]|%[0-9a-f][0-9a-f])*@)?((([a-z0-9]([a-z0-9-]*[a-z0-9])?)\\.)*([a-z]([a-z0-9-]*[a-z0-9])?)\\.?|[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+)(:[0-9]+)?)|([a-z0-9_.!~*'()$,;:@&=+-]|%[0-9a-f][0-9a-f])+)(/([a-z0-9_.!~*'():@&=+$,-]|%[0-9a-f][0-9a-f])*(;([a-z0-9_.!~*'():@&=+$,-]|%[0-9a-f][0-9a-f])*)*(/([a-z0-9_.!~*'():@&=+$,-]|%[0-9a-f][0-9a-f])*(;([a-z0-9_.!~*'():@&=+$,-]|%[0-9a-f][0-9a-f])*)*)*)?(\\?([a-z0-9_.!~*'();/?:@&=+$,-]|%[0-9a-f][0-9a-f])*)?(#([a-z0-9_.!~*'();/?:@&=+$,-]|%[0-9a-f][0-9a-f])*)?|(www|ftp)\\.(([a-z0-9]([a-z0-9-]*[a-z0-9])?)\\.)*([a-z]([a-z0-9-]*[a-z0-9])?)\\.?(:[0-9]+)?(/([-a-z0-9_.!~*'():@&=+$,]|%[0-9a-f][0-9a-f])*(;([-a-z0-9_.!~*'():@&=+$,]|%[0-9a-f][0-9a-f])*)*(/([-a-z0-9_.!~*'():@&=+$,]|%[0-9a-f][0-9a-f])*(;([-a-z0-9_.!~*'():@&=+$,]|%[0-9a-f][0-9a-f])*)*)*)?(\\?([-a-z0-9_.!~*'();/?:@&=+$,]|%[0-9a-f][0-9a-f])*)?(#([-a-z0-9_.!~*'();/?:@&=+$,]|%[0-9a-f][0-9a-f])*)?)[^].,:;!)? \t\r\n<>\"]"
+color body          color153       color235        "[-a-z_0-9.%$]+@[-a-z_0-9.]+\\.[-a-z][-a-z]+"
+
+# compose view ---------------------------------------------------------
+color compose header            color109       color235
+color compose security_encrypt  color106       color235
+color compose security_sign     color106       color235
+color compose security_both     color106       color235
+color compose security_none     color60        color235

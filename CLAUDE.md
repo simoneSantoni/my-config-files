@@ -4,13 +4,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Overview
 
-Dotfiles repository for a Linux desktop environment running i3 window manager with Ubuntu Yaru theming.
+Dotfiles repository for a Linux desktop environment running i3 window manager with Ubuntu Yaru theming. Focused on scientific writing and data analysis workflows (Quarto, R, Python, Julia, LaTeX).
 
 ## Component-Specific Guidance
 
 These subdirectories have detailed `CLAUDE.md` files with architecture and commands:
-- `nvim/` - LazyVim configuration for scientific writing (Quarto, R, Python, Julia)
-- `neomutt/` - Gmail email client setup
+- `nvim/` - LazyVim configuration — see `nvim/CLAUDE.md` for plugin interaction details (Quarto/otter/slime stack, Zotero citation wiring, colorscheme logic)
+- `neomutt/` - Gmail email client — see `neomutt/CLAUDE.md` for testing commands and keybindings
 
 ## Reloading Configs After Changes
 
@@ -23,10 +23,13 @@ These subdirectories have detailed `CLAUDE.md` files with architecture and comma
 
 ## Shell Environment (.zshrc)
 
+The `.zshrc` lives at repo root (symlinked to `~/.zshrc`); `zsh/` directory contains only a README.
+
 - **Oh-My-Zsh plugins**: git, zsh-syntax-highlighting, zsh-autosuggestions, zsh-history-substring-search
-- **Zinit**: Additional plugin manager for zsh-completions
+- **Zinit**: Additional plugin manager for zsh-completions (auto-installs if missing)
 - **Key aliases**: `vim`/`vi` → nvim, `neomutt` → launches with `TERM=xterm-direct` for color support
-- **Language toolchains**: conda (Python/R), juliaup (Julia), nvm (Node.js)
+- **Language toolchains**: conda/Miniconda (Python/R), juliaup (Julia), nvm (Node.js)
+- **Extra PATH entries**: Thunderbird, Zotero, Neovim, R, Spyder
 
 ## Symlink Deployment
 
@@ -52,7 +55,11 @@ Core: Neovim 0.10+, NeoMutt, Neovide, Fastfetch, Oh-My-Zsh, Zinit
 
 Fonts: UbuntuMono Nerd Font, UbuntuSans Nerd Font, FiraCode Nerd Font
 
-Utilities: pass (for neomutt), lynx (HTML email rendering)
+Neovim tooling: stylua, black, isort, prettier/prettierd, texlive, zathura, xdotool, ImageMagick, Zotero (Better BibTeX)
+
+NeoMutt tooling: pass (password manager), lynx (HTML email rendering)
+
+Language runtimes: Python/R (conda), Julia (juliaup), Node.js (nvm)
 
 ## Verification Commands
 

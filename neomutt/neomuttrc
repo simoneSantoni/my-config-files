@@ -99,7 +99,7 @@ set certificate_file = "~/.neomutt/certificates"
 # ===========================================================================
 set editor = "nvim"                  # Or your preferred text editor (vim, emacs, etc.)
 set sort = threads
-set sort_aux = last-date-received
+set sort_aux = date-received
 set indent_string = "> "
 set pager_index_lines = 10          
 set pager_context = 3                # show 3 lines of context
@@ -131,8 +131,8 @@ unset markers
 set charset = "utf-8"
 set uncollapse_jump
 set sort_re
-set sort = reverse-threads
-set sort_aux = last-date-received
+set sort = threads
+set sort_aux = date-received
 # How we reply and quote emails.
 set reply_regexp = "^(([Rr][Ee]?(\[[0-9]+\])?: *)?(\[[^]]+\] *)?)*"
 set quote_regexp = "^( {0,4}[>|:#%]| {0,4}[a-z0-9]+[>|]+)+"
@@ -198,6 +198,6 @@ bind attach <return> view-mailcap
 macro attach s '<save-entry> <bol>~/mail/down/<eol>' 'save attachment'
 auto_view text/html		# automatically show html (mailcap uses lynx)
 
-# color scheme
-set color_directcolor = yes
-source ~/.config/neomutt/colors/mutt-colors-ubuntu-yaru-256.neomuttrc
+# color scheme — mapped by hostname:
+#   stellaris → meadow, t14 → yaru, t16 → duotone, t490s → github-light, default → yaru
+source `case $(hostname) in stellaris) echo ~/.config/neomutt/colors/meadow-256.neomuttrc;; t16) echo ~/.config/neomutt/colors/duotone.neomuttrc;; t490s) echo ~/.config/neomutt/colors/github-light.neomuttrc;; *) echo ~/.config/neomutt/colors/mutt-colors-ubuntu-yaru-256.neomuttrc;; esac`

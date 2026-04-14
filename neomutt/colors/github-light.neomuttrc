@@ -1,0 +1,136 @@
+# vim: filetype=neomuttrc
+#
+# GitHub Light color scheme for NeoMutt (True Color version)
+# Based on projekt0n/github-nvim-theme
+#
+# IMPORTANT: Requires true color terminal support.
+# Add this line BEFORE sourcing this file:
+#   set color_directcolor = yes
+#
+# GitHub Light Palette:
+#   bg:             #ffffff
+#   bg_alt:         #f6f8fa
+#   fg:             #1f2328
+#   fg_dim:         #57606a
+#   comment:        #6e7781
+#   blue:           #0969da
+#   blue_emphasis:   #0550ae
+#   green:          #1a7f37
+#   yellow:         #9a6700
+#   orange:         #e8590c
+#   red:            #cf222e
+#   purple:         #8250df
+#   cyan:           #1b7c83
+#   selection:      #add6ff
+#   border:         #d0d7de
+#   disabled:       #8c959f
+
+# basic colors ---------------------------------------------------------
+color normal        #1f2328        #ffffff
+color error         #cf222e        #ffffff
+color tilde         #d0d7de        #ffffff
+color message       #0969da        #ffffff
+color markers       #cf222e        #f6f8fa
+color attachment    #1f2328        #ffffff
+color search        #9a6700        #add6ff
+color status        #57606a        #f6f8fa
+color indicator     #ffffff        #0969da
+
+# tree (arrow in threads)
+color tree          #0969da        #ffffff
+
+# basic monochrome screen
+mono  bold          bold
+mono  underline     underline
+mono  indicator     reverse
+mono  error         bold
+
+# sidebar --------------------------------------------------------------
+color sidebar_indicator  #ffffff   #0969da
+color sidebar_highlight  #1f2328   #add6ff
+color sidebar_divider    #d0d7de   #ffffff
+color sidebar_flagged    #cf222e   #ffffff
+color sidebar_new        #1a7f37   #ffffff
+color sidebar_ordinary   #57606a   #ffffff
+color sidebar_spoolfile  #9a6700   #ffffff
+
+# index ----------------------------------------------------------------
+color index         #1f2328        #ffffff         "~A"        # all messages
+color index         #9a6700        #ffffff         "~E"        # expired messages
+color index         #0969da        #ffffff         "~N"        # new messages
+color index         #0969da        #ffffff         "~O"        # old messages
+color index         #8250df        #ffffff         "~Q"        # messages that have been replied to
+color index         #6e7781        #ffffff         "~R"        # read messages
+color index         #0969da        #ffffff         "~U"        # unread messages
+color index         #0969da        #ffffff         "~U~$"      # unread, unreferenced messages
+color index         #57606a        #ffffff         "~v"        # messages part of a collapsed thread
+color index         #57606a        #ffffff         "~P"        # messages from me
+color index         #1a7f37        #ffffff         "~p!~F"     # messages to me
+color index         #1a7f37        #ffffff         "~N~p!~F"   # new messages to me
+color index         #1a7f37        #ffffff         "~U~p!~F"   # unread messages to me
+color index         #6e7781        #ffffff         "~R~p!~F"   # read messages to me
+color index         #cf222e        #ffffff         "~F"        # flagged messages
+color index         #cf222e        #ffffff         "~F~p"      # flagged messages to me
+color index         #cf222e        #ffffff         "~N~F"      # new flagged messages
+color index         #cf222e        #ffffff         "~N~F~p"    # new flagged messages to me
+color index         #cf222e        #ffffff         "~U~F~p"    # unread flagged messages to me
+color index         #ffffff        #cf222e         "~D"        # deleted messages
+color index         #57606a        #ffffff         "~v~(!~N)"  # collapsed thread with no unread
+color index         #9a6700        #ffffff         "~v~(~N)"   # collapsed thread with some unread
+color index         #1a7f37        #ffffff         "~N~v~(~N)" # collapsed thread with unread parent
+color index         #cf222e        #add6ff         "~v~(~F)!~N"    # collapsed thread with flagged, no unread
+color index         #9a6700        #add6ff         "~v~(~F~N)"     # collapsed thread with some unread & flagged
+color index         #1a7f37        #add6ff         "~N~v~(~F~N)"   # collapsed thread with unread parent & flagged
+color index         #1a7f37        #add6ff         "~N~v~(~F)"     # collapsed thread with unread parent, flagged
+color index         #1a7f37        #add6ff         "~v~(~p)"       # collapsed thread with messages to me
+color index         #9a6700        #cf222e         "~v~(~D)"       # thread with deleted messages
+
+# message headers ------------------------------------------------------
+color hdrdefault    #6e7781        #ffffff
+color header        #57606a        #ffffff         "^(From)"
+color header        #0969da        #ffffff         "^(Subject)"
+color header        #1a7f37        #ffffff         "^(To)"
+color header        #9a6700        #ffffff         "^(Date)"
+
+# body -----------------------------------------------------------------
+color quoted        #0969da        #ffffff
+color quoted1       #1a7f37        #ffffff
+color quoted2       #9a6700        #ffffff
+color quoted3       #cf222e        #ffffff
+color quoted4       #8250df        #ffffff
+
+color signature     #6e7781        #ffffff
+color bold          #1f2328        #ffffff
+color underline     #1f2328        #ffffff
+color normal        #1f2328        #ffffff
+
+# emoticons
+color body          #9a6700        #ffffff         "[;:][-o][)/(|]"
+color body          #9a6700        #ffffff         "[;:][)(|]"
+color body          #9a6700        #ffffff         "[ ][*][^*]*[*][ ]?"
+color body          #9a6700        #ffffff         "[ ]?[*][^*]*[*][ ]"
+
+# common acronyms
+color body          #6e7781        #ffffff         "[*]?((N)?ACK|CU|LOL|SCNR|BRB|BTW|CWYL|\
+                                                     |FWIW|vbg|GD&R|HTH|HTHBE|IMHO|IMNSHO|\
+                                                     |IRL|RTFM|ROTFL|ROFL|YMMV)[*]?"
+
+# pgp/gpg signatures
+color body          #cf222e        #ffffff         "(BAD signature)"
+color body          #1a7f37        #ffffff         "(Good signature)"
+color body          #ffffff        #ffffff         "^gpg: Good signature .*"
+color body          #6e7781        #ffffff         "^gpg: "
+color body          #6e7781        #cf222e         "^gpg: BAD signature from.*"
+mono  body          bold                            "^gpg: Good signature"
+mono  body          bold                            "^gpg: BAD signature from.*"
+
+# URLs and email addresses
+color body          #e8590c        #ffffff         "([a-z][a-z0-9+-]*://(((([a-z0-9_.!~*'();:&=+$,-]|%[0-9a-f][0-9a-f])*@)?((([a-z0-9]([a-z0-9-]*[a-z0-9])?)\\.)*([a-z]([a-z0-9-]*[a-z0-9])?)\\.?|[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+)(:[0-9]+)?)|([a-z0-9_.!~*'()$,;:@&=+-]|%[0-9a-f][0-9a-f])+)(/([a-z0-9_.!~*'():@&=+$,-]|%[0-9a-f][0-9a-f])*(;([a-z0-9_.!~*'():@&=+$,-]|%[0-9a-f][0-9a-f])*)*(/([a-z0-9_.!~*'():@&=+$,-]|%[0-9a-f][0-9a-f])*(;([a-z0-9_.!~*'():@&=+$,-]|%[0-9a-f][0-9a-f])*)*)*)?(\\?([a-z0-9_.!~*'();/?:@&=+$,-]|%[0-9a-f][0-9a-f])*)?(#([a-z0-9_.!~*'();/?:@&=+$,-]|%[0-9a-f][0-9a-f])*)?|(www|ftp)\\.(([a-z0-9]([a-z0-9-]*[a-z0-9])?)\\.)*([a-z]([a-z0-9-]*[a-z0-9])?)\\.?(:[0-9]+)?(/([-a-z0-9_.!~*'():@&=+$,]|%[0-9a-f][0-9a-f])*(;([-a-z0-9_.!~*'():@&=+$,]|%[0-9a-f][0-9a-f])*)*(/([-a-z0-9_.!~*'():@&=+$,]|%[0-9a-f][0-9a-f])*(;([-a-z0-9_.!~*'():@&=+$,]|%[0-9a-f][0-9a-f])*)*)*)?(\\?([-a-z0-9_.!~*'();/?:@&=+$,]|%[0-9a-f][0-9a-f])*)?(#([-a-z0-9_.!~*'();/?:@&=+$,]|%[0-9a-f][0-9a-f])*)?)[^].,:;!)? \t\r\n<>\"]"
+color body          #0969da        #ffffff         "[-a-z_0-9.%$]+@[-a-z_0-9.]+\\.[-a-z][-a-z]+"
+
+# compose view ---------------------------------------------------------
+color compose header            #1f2328        #ffffff
+color compose security_encrypt  #1a7f37        #ffffff
+color compose security_sign     #1a7f37        #ffffff
+color compose security_both     #1a7f37        #ffffff
+color compose security_none     #cf222e        #ffffff
