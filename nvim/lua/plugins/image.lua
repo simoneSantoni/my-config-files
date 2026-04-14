@@ -11,7 +11,7 @@ return {
       return vim.env.DISPLAY ~= nil or vim.env.WAYLAND_DISPLAY ~= nil
     end,
     opts = {
-      backend = "ueberzug",
+      backend = "kitty",
       processor = "magick_cli",
       integrations = {
         markdown = {
@@ -34,7 +34,7 @@ return {
       max_width = nil,
       max_height = nil,
       max_width_window_percentage = nil,
-      max_height_window_percentage = 50,
+      max_height_window_percentage = nil,
       window_overlap_clear_enabled = false,
       window_overlap_clear_ft_ignore = { "cmp_menu", "cmp_docs", "" },
       editor_only_render_when_focused = false,
