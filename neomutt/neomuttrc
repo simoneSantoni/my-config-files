@@ -198,6 +198,9 @@ bind attach <return> view-mailcap
 macro attach s '<save-entry> <bol>~/mail/down/<eol>' 'save attachment'
 auto_view text/html		# automatically show html (mailcap uses lynx)
 
+# enable truecolor (hex colors) — required by meadow.neomuttrc and others
+set color_directcolor = yes
+
 # color scheme — mapped by hostname:
 #   stellaris → meadow, t14 → yaru, t16 → duotone, t490s → github-light, default → yaru
-source `case $(hostname) in stellaris) echo ~/.config/neomutt/colors/meadow-256.neomuttrc;; t16) echo ~/.config/neomutt/colors/duotone.neomuttrc;; t490s) echo ~/.config/neomutt/colors/github-light.neomuttrc;; *) echo ~/.config/neomutt/colors/mutt-colors-ubuntu-yaru-256.neomuttrc;; esac`
+source `case $(hostname) in stellaris) echo ~/.config/neomutt/colors/meadow.neomuttrc;; t16) echo ~/.config/neomutt/colors/duotone.neomuttrc;; t490s) echo ~/.config/neomutt/colors/github-light.neomuttrc;; *) echo ~/.config/neomutt/colors/mutt-colors-ubuntu-yaru-256.neomuttrc;; esac`
