@@ -2,7 +2,7 @@
 export PATH=$HOME/bin:$HOME/.local/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:$PATH
 
 # System info
-fastfetch --logo-type file --logo /home/simon/ascii/machine.txt
+fastfetch --logo-type file --logo /home/simon/ascii/grogu.txt
 
 # Path to your Oh My Zsh installation.
 export ZSH="$HOME/.oh-my-zsh"
