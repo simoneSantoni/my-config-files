@@ -1,8 +1,8 @@
 # If you come from bash you might have to change your $PATH.
-export PATH=$HOME/bin:$HOME/.local/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:$PATH
+# export PATH=$HOME/bin:$HOME/.local/bin:/usr/local/bin:$PATH
 
 # System info
-fastfetch --logo-type file --logo /home/simon/ascii/grogu.txt
+fastfetch --logo-type file --logo /home/simone/ascii/t490.txt
 
 # Path to your Oh My Zsh installation.
 export ZSH="$HOME/.oh-my-zsh"
@@ -74,16 +74,14 @@ ZSH_THEME="robbyrussell"
 # Example format: plugins=(rails git textmate ruby lighthouse)
 # Add wisely, as too many plugins slow down shell startup.
 plugins=(git zsh-syntax-highlighting zsh-autosuggestions zsh-history-substring-search)
-# zsh completion does not work if installed as regular plugins
-#   see https://github.com/zsh-users/zsh-completions
+# zsh-completions -- see https://github.com/zsh-users/zsh-completions/issues/603
 fpath+=${ZSH_CUSTOM:-${ZSH:-~/.oh-my-zsh}/custom}/plugins/zsh-completions/src
 autoload -U compinit && compinit
 source $ZSH/oh-my-zsh.sh
-# zinit light zsh-users/zsh-completions  # Moved to after zinit initialization
 
 # User configuration
 
-#export MANPATH="/usr/local/man:$MANPATH"
+# export MANPATH="/usr/local/man:$MANPATH"
 
 # You may need to manually set your language environment
 # export LANG=en_US.UTF-8
@@ -92,11 +90,11 @@ source $ZSH/oh-my-zsh.sh
 # if [[ -n $SSH_CONNECTION ]]; then
 #   export EDITOR='vim'
 # else
-#   export EDITOR='mvim'
+#   export EDITOR='nvim'
 # fi
 
 # Compilation flags
-# export ARCHFLAGS="-arch x86_64"
+# export ARCHFLAGS="-arch $(uname -m)"
 
 # Set personal aliases, overriding those provided by Oh My Zsh libs,
 # plugins, and themes. Aliases can be placed here, though Oh My Zsh
@@ -109,104 +107,54 @@ source $ZSH/oh-my-zsh.sh
 # Example aliases
 # alias zshconfig="mate ~/.zshrc"
 # alias ohmyzsh="mate ~/.oh-my-zsh"
-alias vim=nvim
-alias vi=nvim
-# >>> nvm initialize >>>
-export NVM_DIR="$HOME/.nvm"
-[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
-[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
-# <<< nvm initialize <<<
+
+# >>> initialize Thunderbird >>>>
+path=('/home/simone/opt/thunderbird' $path)
+export PATH
+# <<< initialize Thunderbird <<<
+
+# >>> juliaup initialize >>>
+# !! Contents within this block are managed by juliaup !!
+path=('/home/simone/.juliaup/bin' $path)
+export PATH
+# <<< juliaup initialize <<<
+
+# >>> initialize Zotero >>>>
+path=('/home/simone/opt/zotero' $path)
+export PATH
+# <<< initialize Zotero <<<
+
+# >>> initialize Neovim >>>>
+path=('/home/simone/opt/nvim-linux-x86_64/bin' $path)
+export PATH
+# <<< initialize Neovim <<<
+
+# >>> initialize Quarto >>>>
+#path=('/home/simone/opt/quarto/bin' $path)
+#export PATH
+# <<< initialize Quarto <<<
 
 # >>> conda initialize >>>
 # !! Contents within this block are managed by 'conda init' !!
-__conda_setup="$('/home/simon/miniconda3/bin/conda' 'shell.bash' 'hook' 2> /dev/null)"
+__conda_setup="$('/home/simone/miniconda3/bin/conda' 'shell.zsh' 'hook' 2> /dev/null)"
 if [ $? -eq 0 ]; then
     eval "$__conda_setup"
 else
-    if [ -f "/home/simon/miniconda3/etc/profile.d/conda.sh" ]; then
-        . "/home/simon/miniconda3/etc/profile.d/conda.sh"
+    if [ -f "/home/simone/miniconda3/etc/profile.d/conda.sh" ]; then
+        . "/home/simone/miniconda3/etc/profile.d/conda.sh"
     else
-        export PATH="/home/simon/miniconda3/bin:$PATH"
+        export PATH="/home/simone/miniconda3/bin:$PATH"
     fi
 fi
 unset __conda_setup
 # <<< conda initialize <<<
 
-# >>> juliaup initialize >>>
-
-# !! Contents within this block are managed by juliaup !!
-
-path=('/home/simon/.juliaup/bin' $path)
+# >>> kitty initialize >>>
+path=("/home/simone/.local/kitty.app/bin" $path)
 export PATH
+# <<< kitty initialize <<<<
 
-# <<< juliaup initialize <<<
-
-# >>> thundrbird initialize >>>
-
-# !! Contents within this block are managed by juliaup !!
-
-path=('/home/simon/opt/thunderbird/bin' $path)
-export PATH
-
-# <<< thunderbird initialize <<<
-
-# >>> zotero initialize >>>
-
-# !! Contents within this block are managed by juliaup !!
-
-path=('/home/simon/opt/zotero/bin' $path)
-export PATH
-
-# <<< zotero initialize <<<
-
-# >>> neovim initialize >>>
-
-# !! Contents within this block are managed by juliaup !!
-
-path=('/home/simon/opt/nvim-linux-x86_64/bin' $path)
-export PATH
-
-# <<< neovim initialize <<<
-
-# >>> R initialize >>>
-
-# !! Contents within this block are managed by juliaup !!
-
-path=('/home/simon/miniconda3/bin' $path)
-export PATH
-
-# <<< R initialize <<<
-
-# >>> Added by Spyder >>>
-alias spyder=/home/simon/.local/spyder-6/envs/spyder-runtime/bin/spyder
-alias uninstall-spyder=/home/simon/.local/spyder-6/uninstall-spyder.sh
-# <<< Added by Spyder <<<
-
-### Added by Zinit's installer
-if [[ ! -f $HOME/.local/share/zinit/zinit.git/zinit.zsh ]]; then
-    print -P "%F{33} %F{220}Installing %F{33}ZDHARMA-CONTINUUM%F{220} Initiative Plugin Manager (%F{33}zdharma-continuum/zinit%F{220})…%f"
-    command mkdir -p "$HOME/.local/share/zinit" && command chmod g-rwX "$HOME/.local/share/zinit"
-    command git clone https://github.com/zdharma-continuum/zinit "$HOME/.local/share/zinit/zinit.git" && \
-        print -P "%F{33} %F{34}Installation successful.%f%b" || \
-        print -P "%F{160} The clone has failed.%f%b"
-fi
-
-source "$HOME/.local/share/zinit/zinit.git/zinit.zsh"
-autoload -Uz _zinit
-(( ${+_comps} )) && _comps[zinit]=_zinit
-
-# Load a few important annexes, without Turbo
-# (this is currently required for annexes)
-zinit light-mode for \
-    zdharma-continuum/zinit-annex-as-monitor \
-    zdharma-continuum/zinit-annex-bin-gem-node \
-    zdharma-continuum/zinit-annex-patch-dl \
-    zdharma-continuum/zinit-annex-rust
-
-# Load zsh-completions
-zinit light zsh-users/zsh-completions
-
-### End of Zinit's installer chunk
-
-# Neomutt color support
-alias neomutt='TERM=xterm-direct neomutt'
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
+[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
+export PATH="$HOME/.local/bin:$PATH"
