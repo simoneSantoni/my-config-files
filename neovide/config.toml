@@ -2,7 +2,7 @@ fork = false
 frame = "full"
 idle = true
 maximized = true
-neovim-bin = "/home/simon/opt/nvim-linux-x86_64/bin/nvim" # in reality found dynamically on $PATH if unset
+# neovim-bin is found dynamically on $PATH if unset
 no-multigrid = false
 srgb = false
 tabs = true
