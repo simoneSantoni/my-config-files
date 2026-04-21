@@ -2,7 +2,7 @@ fork = false
 frame = "full"
 idle = true
 maximized = true
-# neovim-bin is found dynamically on $PATH if unset
+neovim-bin = "/home/simon/opt/nvim-linux-x86_64/bin/nvim"
 no-multigrid = false
 srgb = false
 tabs = true
@@ -13,4 +13,4 @@ wsl = false
 
 [font]
 normal = ["JuliaMono Nerd Font Mono"]
-size = 9
+size = 8

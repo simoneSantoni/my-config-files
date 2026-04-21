@@ -89,4 +89,4 @@ unset __conda_setup
 #                                STARTUP
 # =============================================================================
 
-fastfetch --logo-type file --logo /home/simon/ascii/machine.txt
+fastfetch --logo-type file --logo ~/.config/fastfetch/"$(hostname)".txt

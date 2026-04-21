@@ -36,17 +36,24 @@ return {
   {
     "projekt0n/github-nvim-theme",
     name = "github-theme",
-    lazy = not vim.g.neovide and not is_t490s,
+    lazy = not is_t490s,
     priority = 1000,
     config = function()
-      if vim.g.neovide then
-        vim.cmd.colorscheme("github_dark")
-      elseif is_t490s then
+      if is_t490s then
         vim.cmd.colorscheme("github_light")
       end
     end,
   },
-  { "marko-cerovac/material.nvim", lazy = true },
+  {
+    "marko-cerovac/material.nvim",
+    lazy = not vim.g.neovide,
+    priority = 1000,
+    config = function()
+      if vim.g.neovide then
+        vim.cmd.colorscheme("material")
+      end
+    end,
+  },
   {
     "zenbones-theme/zenbones.nvim",
     dependencies = "rktjmp/lush.nvim",

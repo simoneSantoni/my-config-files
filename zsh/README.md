@@ -4,7 +4,7 @@ Personal zsh configuration with Oh-My-Zsh and Zinit plugin managers.
 
 ## Structure
 
-The `.zshrc` is organized into the following sections:
+The `.zshrc` lives in this subdirectory (`zsh/.zshrc`) and is symlinked to `~/.zshrc`. It is organized into the following sections:
 
 | Section | Description |
 |---------|-------------|
@@ -61,7 +61,7 @@ Custom paths configured for:
 
 ```bash
 # Symlink to home directory
-ln -sf $(pwd)/.zshrc ~/.zshrc
+ln -sf $(pwd)/zsh/.zshrc ~/.zshrc
 
 # Reload configuration
 source ~/.zshrc

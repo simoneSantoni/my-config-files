@@ -4,13 +4,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Overview
 
-Dotfiles repository for a Linux desktop environment running i3 window manager with Ubuntu Yaru theming. Focused on scientific writing and data analysis workflows (Quarto, R, Python, Julia, LaTeX).
+Dotfiles repository for a Linux desktop environment running i3 window manager with Ubuntu Yaru theming. Focused on scientific writing and data analysis workflows (Quarto, R, Python, Julia, LaTeX). See `README.md` for full component list and installation instructions.
 
 ## Component-Specific Guidance
 
 These subdirectories have detailed `CLAUDE.md` files with architecture and commands:
-- `nvim/` - LazyVim configuration — see `nvim/CLAUDE.md` for plugin interaction details (Quarto/otter/slime stack, Zotero citation wiring, colorscheme logic)
-- `neomutt/` - Gmail email client — see `neomutt/CLAUDE.md` for testing commands and keybindings
+- `nvim/` — LazyVim configuration. See `nvim/CLAUDE.md` for plugin interaction details (Quarto/otter/slime stack, Zotero citation wiring, colorscheme logic)
+- `neomutt/` — Gmail email client. See `neomutt/CLAUDE.md` for testing commands and keybindings
 
 ## Reloading Configs After Changes
 
@@ -21,16 +21,6 @@ These subdirectories have detailed `CLAUDE.md` files with architecture and comma
 | neovide | Close and reopen |
 | zsh | `source ~/.zshrc` |
 
-## Shell Environment (.zshrc)
-
-The `.zshrc` lives at repo root (symlinked to `~/.zshrc`); `zsh/` directory contains only a README.
-
-- **Oh-My-Zsh plugins**: git, zsh-syntax-highlighting, zsh-autosuggestions, zsh-history-substring-search
-- **Zinit**: Additional plugin manager for zsh-completions (auto-installs if missing)
-- **Key aliases**: `vim`/`vi` → nvim, `neomutt` → launches with `TERM=xterm-direct` for color support
-- **Language toolchains**: conda/Miniconda (Python/R), juliaup (Julia), nvm (Node.js)
-- **Extra PATH entries**: Thunderbird, Zotero, Neovim, R, Spyder
-
 ## Symlink Deployment
 
 Configs are symlinked from this repo to `~/.config/`:
@@ -38,8 +28,19 @@ Configs are symlinked from this repo to `~/.config/`:
 for dir in nvim neomutt neovide fastfetch; do
   ln -sf $(pwd)/$dir ~/.config/$dir
 done
-ln -sf $(pwd)/.zshrc ~/.zshrc
+ln -sf $(pwd)/zsh/.zshrc ~/.zshrc
 ```
+
+## Shell Environment (.zshrc)
+
+The `.zshrc` lives in the `zsh/` subdirectory (symlinked to `~/.zshrc`).
+
+- **Oh-My-Zsh plugins**: git, zsh-syntax-highlighting, zsh-autosuggestions, zsh-history-substring-search
+- **Zinit**: Additional plugin manager for zsh-completions (auto-installs if missing)
+- **Key aliases**: `vim`/`vi` → nvim, `neomutt` → launches with `TERM=xterm-direct` for color support
+- **Language toolchains**: conda/Miniconda (Python/R), juliaup (Julia), nvm (Node.js)
+- **Extra PATH entries**: Thunderbird, Zotero, Neovim, Kitty, `~/.local/bin`
+- **Hardcoded username**: PATH entries in `.zshrc` use `/home/simone/` — update these when deploying on a different machine
 
 ## Theme Consistency
 
@@ -49,17 +50,7 @@ All applications use **Ubuntu Yaru** color scheme:
 - Accent: `#E95420` (Ubuntu orange)
 - Font: UbuntuMono Nerd Font / FiraCode Nerd Font
 
-## Dependencies
-
-Core: Neovim 0.10+, NeoMutt, Neovide, Fastfetch, Oh-My-Zsh, Zinit
-
-Fonts: UbuntuMono Nerd Font, UbuntuSans Nerd Font, FiraCode Nerd Font
-
-Neovim tooling: stylua, black, isort, prettier/prettierd, texlive, zathura, xdotool, ImageMagick, Zotero (Better BibTeX)
-
-NeoMutt tooling: pass (password manager), lynx (HTML email rendering)
-
-Language runtimes: Python/R (conda), Julia (juliaup), Node.js (nvm)
+When modifying colors in any component, keep them consistent with these values.
 
 ## Verification Commands
 
@@ -69,4 +60,7 @@ neomutt -D 2>&1 | head -20
 
 # Check nvim health
 nvim --headless "+checkhealth" "+qa"
+
+# Verify zsh loads without errors
+zsh -i -c exit
 ```
