@@ -85,6 +85,12 @@ else
 fi
 unset __conda_setup
 
+# Anthropic API key (for codecompanion.nvim)
+# Store with: pass insert anthropic/api-key
+if command -v pass >/dev/null 2>&1 && pass ls anthropic/api-key >/dev/null 2>&1; then
+  export ANTHROPIC_API_KEY="$(pass show anthropic/api-key)"
+fi
+
 # =============================================================================
 #                                STARTUP
 # =============================================================================

@@ -34,7 +34,7 @@ Dotfiles for a Linux desktop environment running i3 window manager with Ubuntu Y
 - **REPL workflow**: vim-slime sends code to terminal; `<C-,><C-,>` sends paragraph, `<C-.><C-.>` sends line
 - **Quarto/R**: quarto-nvim, otter.nvim for embedded language support, cmp-r completions
 - **Citations**: Zotero integration via telescope-zotero and cmp_zotcite
-- **AI assistants**: Claude, Gemini, Codex plugins
+- **AI assistants**: Claude, Gemini, CodeCompanion plugins
 - **Colorscheme**: [yaru](https://github.com/simoneSantoni/yaru.nvim) (Ubuntu Yaru port)
 
 ### NeoMutt (`neomutt/`)
