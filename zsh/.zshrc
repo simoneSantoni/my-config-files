@@ -7,6 +7,7 @@ export PATH=$HOME/bin:$HOME/.local/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/s
 # Tool-specific paths
 path=(
     '/home/simon/.juliaup/bin'
+    '/home/simon/.julia/bin'
     '/home/simon/opt/thunderbird/bin'
     '/home/simon/opt/zotero/bin'
     '/home/simon/opt/nvim-linux-x86_64/bin'
