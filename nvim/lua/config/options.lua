@@ -11,6 +11,15 @@ vim.g.loaded_perl_provider = 0
 vim.g.loaded_ruby_provider = 0
 vim.g.loaded_node_provider = 0
 
+-- Ensure Julia toolchain (juliaup, jetls) is discoverable regardless of how
+-- nvim is launched. Neovide's .desktop uses `bash -lc`, which does not source
+-- zsh's PATH additions, so jetls would otherwise fail to start there.
+for _, dir in ipairs({ "/home/simon/.juliaup/bin", "/home/simon/.julia/bin" }) do
+  if vim.fn.isdirectory(dir) == 1 and not string.find(vim.env.PATH or "", dir, 1, true) then
+    vim.env.PATH = dir .. ":" .. (vim.env.PATH or "")
+  end
+end
+
 -- Neovide settings
 if vim.g.neovide then
   -- Transparency
