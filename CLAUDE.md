@@ -28,7 +28,7 @@ Configs are symlinked from this repo to `~/.config/`:
 for dir in nvim neomutt neovide fastfetch; do
   ln -sf $(pwd)/$dir ~/.config/$dir
 done
-ln -sf $(pwd)/zsh/.zshrc ~/.zshrc
+ln -sf "$(pwd)/zsh/.zshrc" ~/.zshrc
 ```
 
 ## Shell Environment (.zshrc)
@@ -40,7 +40,7 @@ The `.zshrc` lives in the `zsh/` subdirectory (symlinked to `~/.zshrc`).
 - **Key aliases**: `vim`/`vi` → nvim, `neomutt` → launches with `TERM=xterm-direct` for color support
 - **Language toolchains**: conda/Miniconda (Python/R), juliaup (Julia), nvm (Node.js)
 - **Extra PATH entries**: Thunderbird, Zotero, Neovim, Kitty, `~/.local/bin`
-- **Hardcoded username**: PATH entries in `.zshrc` use `/home/simone/` — update these when deploying on a different machine
+- **Hardcoded username**: PATH entries in `.zshrc` use `/home/simon/` — update these when deploying on a different machine
 
 ## Theme Consistency
 
