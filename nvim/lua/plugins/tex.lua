@@ -8,4 +8,14 @@ return {
       vim.g.vimtex_view_method = "zathura"
     end,
   },
+  {
+    "sonv/latex-preview.nvim",
+    dependencies = { "folke/snacks.nvim" },
+    ft = { "tex", "latex", "markdown", "rmd", "quarto" },
+    opts = {
+      setup_keymap = true,
+      cache = true,
+      cache_dir = "aux",
+    },
+  },
 }

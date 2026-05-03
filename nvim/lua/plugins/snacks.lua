@@ -4,6 +4,13 @@ return {
     picker = {
       enabled = true,
     },
+    image = {
+      enabled = true,
+      doc = {
+        inline = false,
+        float = true,
+      },
+    },
     dashboard = {
       preset = {
         header = [[
