@@ -89,4 +89,8 @@ fi
 #                                STARTUP
 # =============================================================================
 
-fastfetch --logo-type file --logo ~/.config/fastfetch/"$(hostname)".txt
+if [[ "$(hostname)" == *stellaris* ]]; then
+  fastfetch --logo-type file --logo ~/ascii/grogu.txt
+else
+  fastfetch --logo-type file --logo ~/.config/fastfetch/"$(hostname)".txt
+fi
