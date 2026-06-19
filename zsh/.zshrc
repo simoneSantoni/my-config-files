@@ -58,7 +58,6 @@ zinit light-mode for \
 # =============================================================================
 
 alias vim=nvim
-alias vi=nvim
 alias tiny=nvim
 alias neomutt='TERM=xterm-direct neomutt'
 alias spyder=/home/simon/.local/spyder-6/envs/spyder-runtime/bin/spyder
@@ -91,6 +90,8 @@ fi
 
 if [[ "$(hostname)" == *stellaris* ]]; then
   fastfetch --logo-type file --logo ~/ascii/grogu.txt
+elif [[ "$(hostname)" == *3610* ]]; then
+  fastfetch --logo-type file --logo ~/.config/fastfetch/3610.txt
 else
   fastfetch --logo-type file --logo ~/.config/fastfetch/"$(hostname)".txt
 fi

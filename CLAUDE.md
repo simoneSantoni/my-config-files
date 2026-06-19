@@ -11,6 +11,7 @@ Dotfiles repository for a Linux desktop environment running i3 window manager wi
 These subdirectories have detailed `CLAUDE.md` files with architecture and commands:
 - `nvim/` — LazyVim configuration. See `nvim/CLAUDE.md` for plugin interaction details (Quarto/otter/slime stack, Zotero citation wiring, colorscheme logic)
 - `neomutt/` — Gmail email client. See `neomutt/CLAUDE.md` for testing commands and keybindings
+- `emacs/` — GNU Emacs 30 (`init.el`, package.el). See `emacs/CLAUDE.md` for load-order rationale and the pdf-tools/vterm/claude-code-ide build dependencies
 
 ## Reloading Configs After Changes
 
@@ -20,6 +21,7 @@ These subdirectories have detailed `CLAUDE.md` files with architecture and comma
 | neomutt | Restart neomutt |
 | neovide | Close and reopen |
 | zsh | `source ~/.zshrc` |
+| emacs | Restart Emacs, or `M-x load-file` on `init.el` |
 
 ## Symlink Deployment
 
@@ -29,7 +31,12 @@ for dir in nvim neomutt neovide fastfetch; do
   ln -sf $(pwd)/$dir ~/.config/$dir
 done
 ln -sf "$(pwd)/zsh/.zshrc" ~/.zshrc
+ln -sf "$(pwd)/emacs/init.el" ~/.emacs.d/init.el
 ```
+
+Emacs is symlinked as a single file (`init.el`), not a directory, because
+`~/.emacs.d/` also holds generated state (`elpa/`, `eln-cache/`, …) that is not
+tracked in this repo.
 
 ## Shell Environment (.zshrc)
 
