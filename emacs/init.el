@@ -14,6 +14,35 @@
 (unless package-archive-contents
   (package-refresh-contents))
 
+;; Ensure every third-party package this init `require's is actually installed.
+;; A fresh checkout (or a freshly wiped elpa/) has no packages, so the bare
+;; `require' calls below would fail with "Cannot open load file". Install any
+;; that are missing, refreshing the archive cache once if a name isn't found.
+(let ((required-packages '(exec-path-from-shell
+                           compat
+                           markdown-mode
+                           markdown-toc
+                           vterm
+                           pdf-tools
+                           doom-modeline
+                           minions
+                           nerd-icons
+                           ef-themes
+                           magit
+                           diff-hl)))
+  (dolist (pkg required-packages)
+    (unless (package-installed-p pkg)
+      (unless (assq pkg package-archive-contents)
+        (package-refresh-contents))
+      (package-install pkg))))
+
+;; claude-code-ide isn't published to GNU/NonGNU ELPA or MELPA, so it can't be
+;; installed with `package-install'. Pull it straight from its Git repository
+;; with `package-vc-install'; that reads its Package-Requires header and pulls
+;; the dependencies (websocket, transient, web-server) from the archives.
+(unless (package-installed-p 'claude-code-ide)
+  (package-vc-install "https://github.com/manzaltu/claude-code-ide.el"))
+
 ;; Import PATH (and other env) from the login shell. GUI Emacs launched from a
 ;; desktop launcher gets a minimal PATH that omits ~/.local/bin, so tools like
 ;; the `claude' CLI used by claude-code-ide aren't found. This fixes that.
@@ -97,3 +126,14 @@
 ;; current and all future frames.
 (set-face-attribute 'default nil :family "JuliaMono Nerd Font Mono" :height 120)
 (add-to-list 'default-frame-alist '(font . "JuliaMono Nerd Font Mono-12"))
+
+;; --- Git (magit + diff-hl) --------------------------------------------------
+;; magit: the Git porcelain. Autoloaded, so just bind the usual entry point
+;; rather than `require'-ing the whole thing at startup.
+(global-set-key (kbd "C-x g") #'magit-status)
+;; diff-hl: show added/changed/removed lines in the fringe, live, in every
+;; file-visiting buffer. Keep its indicators in sync with magit commits/stages.
+(require 'diff-hl)
+(global-diff-hl-mode 1)
+(add-hook 'magit-pre-refresh-hook #'diff-hl-magit-pre-refresh)
+(add-hook 'magit-post-refresh-hook #'diff-hl-magit-post-refresh)
