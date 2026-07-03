@@ -1,0 +1,8 @@
+Product name: HHKB-Studio
+Model name: PD-ID100B
+Serial number: CRWT001845
+Keyboard layout: US
+Boot loader version?: 0.16.9-99-gc03e18-dirty
+Firmware version: B009
+DIP Sw: 000011
+Current profile: 0

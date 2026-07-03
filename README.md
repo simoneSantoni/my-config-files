@@ -23,6 +23,10 @@ Dotfiles for a Linux desktop environment running i3 window manager with Ubuntu Y
 │   └── config.jsonc
 ├── emacs/             GNU Emacs configuration
 │   └── init.el        Single-file config (package.el + MELPA)
+├── hhkb/              HHKB Studio keyboard keymap profiles
+│   ├── current-profile-{0..3}.toml   Live profile dumps
+│   ├── profile-backup.toml           Factory/known-good restore point
+│   └── profile-{0..3}-decoded.txt    Human-readable layout renders
 └── zsh/
     └── .zshrc         ZSH shell configuration
 ```
@@ -66,6 +70,18 @@ PDF viewing, an in-editor terminal, and Claude Code integration. See
 - **Packages**: markdown-mode, markdown-toc, vterm, claude-code-ide, pdf-tools, doom-modeline, minions, nerd-icons, ef-themes, exec-path-from-shell
 - **Theme**: ef-themes (`ef-light` default), JuliaMono Nerd Font Mono
 - **Build deps**: cmake + libtool (vterm), poppler + glib headers (pdf-tools)
+
+### HHKB Studio (`hhkb/`)
+
+Keymap profiles for an HHKB Studio (PD-ID100B, US) managed with
+[`hhkb-studio-tools`](https://github.com/yuja/hhkb-studio-tools). The keyboard is the
+source of truth; this dir is a versioned snapshot + restore point (no symlink/deploy).
+See [`hhkb/README.md`](hhkb/README.md) for the full reference and
+[`hhkb/CLAUDE.md`](hhkb/CLAUDE.md) for the gotchas.
+
+- **Customizations** (profile 0 vs factory): Delete→Backspace (Delete on Fn), Left ◇→Fn1, and ◇/Meta placed next to the right of space (Alt moved outboard)
+- **Editing requires USB**, not Bluetooth — switch to wired with **Fn+Control+0**; the config interface is the `0xFF60` vendor hidraw, found by probing with `hhkb-studio-tools info`
+- **Restore factory**: `hhkb-studio-tools write-profile --device $DEV --index 0 -i hhkb/profile-backup.toml`
 
 ### ZSH (`.zshrc`)
 

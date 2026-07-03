@@ -12,6 +12,7 @@ These subdirectories have detailed `CLAUDE.md` files with architecture and comma
 - `nvim/` — LazyVim configuration. See `nvim/CLAUDE.md` for plugin interaction details (Quarto/otter/slime stack, Zotero citation wiring, colorscheme logic)
 - `neomutt/` — Gmail email client. See `neomutt/CLAUDE.md` for testing commands and keybindings
 - `emacs/` — GNU Emacs 30 (`init.el`, package.el). See `emacs/CLAUDE.md` for load-order rationale and the pdf-tools/vterm/claude-code-ide build dependencies
+- `hhkb/` — HHKB Studio keymap profiles managed with `hhkb-studio-tools`. See `hhkb/CLAUDE.md` for the USB-only config-access gotcha (Bluetooth returns garbage), how to find the vendor hidraw interface, and the bottom-row cell map
 
 ## Reloading Configs After Changes
 

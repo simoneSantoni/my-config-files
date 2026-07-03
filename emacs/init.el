@@ -22,6 +22,8 @@
                            compat
                            markdown-mode
                            markdown-toc
+                           csv-mode
+                           casual
                            vterm
                            pdf-tools
                            doom-modeline
@@ -43,6 +45,13 @@
 (unless (package-installed-p 'claude-code-ide)
   (package-vc-install "https://github.com/manzaltu/claude-code-ide.el"))
 
+;; rainbow-csv is published only to the author's JCS-ELPA, not GNU/NonGNU ELPA or
+;; MELPA, so `package-install' can't find it. Pull it from Git with
+;; `package-vc-install'; its Package-Requires header names `csv-mode', which is
+;; already installed above so the dependency resolves from GNU ELPA.
+(unless (package-installed-p 'rainbow-csv)
+  (package-vc-install "https://github.com/emacs-vs/rainbow-csv"))
+
 ;; Import PATH (and other env) from the login shell. GUI Emacs launched from a
 ;; desktop launcher gets a minimal PATH that omits ~/.local/bin, so tools like
 ;; the `claude' CLI used by claude-code-ide aren't found. This fixes that.
@@ -63,6 +72,22 @@
 (add-to-list 'auto-mode-alist '("\\.markdown\\'" . markdown-mode))
 ;; markdown-toc: generate/refresh a table of contents (M-x markdown-toc-generate-toc).
 (require 'markdown-toc)
+
+;; --- CSV --------------------------------------------------------------------
+;; csv-mode (GNU ELPA): major mode for delimited files; its autoloads already
+;; register .csv/.tsv/.tab in `auto-mode-alist', but require it eagerly so the
+;; hooks and keybinding below have `csv-mode-map' available at startup.
+(require 'csv-mode)
+;; rainbow-csv: tints each column a distinct colour so fields line up visually.
+;; Turn it on automatically in both csv- and tsv-mode buffers.
+(require 'rainbow-csv)
+(add-hook 'csv-mode-hook #'rainbow-csv-mode)
+(add-hook 'tsv-mode-hook #'rainbow-csv-mode)
+;; Casual CSV (from the `casual' suite on MELPA): a Transient menu exposing
+;; csv-mode's commands. Bind its entry point to M-m in csv-mode buffers, the key
+;; the package's own docs recommend. `casual-csv-tmenu' is autoloaded, so no
+;; extra `require' is needed for the menu itself.
+(keymap-set csv-mode-map "M-m" #'casual-csv-tmenu)
 
 ;; --- vterm ------------------------------------------------------------------
 ;; Fully-featured terminal emulator backed by a native module. The module is
@@ -124,8 +149,8 @@
 ;; --- Default font -----------------------------------------------------------
 ;; JuliaMono Nerd Font Mono (includes Nerd Font glyphs/icons). Applies to the
 ;; current and all future frames.
-(set-face-attribute 'default nil :family "JuliaMono Nerd Font Mono" :height 120)
-(add-to-list 'default-frame-alist '(font . "JuliaMono Nerd Font Mono-12"))
+(set-face-attribute 'default nil :family "JuliaMono Nerd Font Mono" :height 150)
+(add-to-list 'default-frame-alist '(font . "JuliaMono Nerd Font Mono-15"))
 
 ;; --- Git (magit + diff-hl) --------------------------------------------------
 ;; magit: the Git porcelain. Autoloaded, so just bind the usual entry point
@@ -137,3 +162,19 @@
 (global-diff-hl-mode 1)
 (add-hook 'magit-pre-refresh-hook #'diff-hl-magit-pre-refresh)
 (add-hook 'magit-post-refresh-hook #'diff-hl-magit-post-refresh)
+(custom-set-variables
+ ;; custom-set-variables was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ '(package-vc-selected-packages
+   '((rainbow-csv :vc-backend Git :url
+		  "https://github.com/emacs-vs/rainbow-csv")
+     (claude-code-ide :vc-backend Git :url
+		      "https://github.com/manzaltu/claude-code-ide.el"))))
+(custom-set-faces
+ ;; custom-set-faces was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ )
