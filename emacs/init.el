@@ -28,6 +28,17 @@
 (add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/") t)
 (package-initialize)
 
+;; GNU ELPA rotates its signing keys more often than some Emacs distributions
+;; update their bundled keyring. Bootstrap the official keyring updater before
+;; installing anything else. Signature checking is disabled only for this
+;; catch-22; package.el's normal `allow-unsigned' policy resumes immediately
+;; afterward, so signed packages must still have a valid signature.
+(unless (package-installed-p 'gnu-elpa-keyring-update)
+  (let ((package-check-signature nil))
+    (unless package-archive-contents
+      (package-refresh-contents))
+    (package-install 'gnu-elpa-keyring-update)))
+
 ;; On first run (or when the archive cache is empty), refresh package metadata
 ;; so M-x package-install / package-list-packages can see MELPA packages.
 (unless package-archive-contents
@@ -188,8 +199,11 @@
 
 ;; --- vterm ------------------------------------------------------------------
 ;; Fully-featured terminal emulator backed by a native module. The module is
-;; compiled on first load and needs cmake + libtool installed on the system.
-(require 'vterm)
+;; compiled on first use and needs cmake + libtool installed on the system.
+;; Keep it autoloaded rather than requiring it during init: when the module is
+;; absent, vterm asks whether to compile it, and a minibuffer prompt during
+;; startup can abort the whole initialization (notably for daemon sessions).
+;; package.el has already installed vterm and registered its autoloads above.
 
 ;; --- claude-code-ide --------------------------------------------------------
 ;; Runs the Claude Code CLI inside a vterm buffer with IDE integration.
@@ -283,8 +297,8 @@
 ;; --- Default font -----------------------------------------------------------
 ;; JuliaMono Nerd Font Mono (includes Nerd Font glyphs/icons). Applies to the
 ;; current and all future frames.
-(set-face-attribute 'default nil :family "JuliaMono Nerd Font Mono" :height 150)
-(add-to-list 'default-frame-alist '(font . "JuliaMono Nerd Font Mono-15"))
+(set-face-attribute 'default nil :family "JuliaMono Nerd Font Mono" :height 130)
+(add-to-list 'default-frame-alist '(font . "JuliaMono Nerd Font Mono-13"))
 
 ;; --- Git (magit + diff-hl) --------------------------------------------------
 ;; magit: the Git porcelain. Autoloaded, so just bind the usual entry point
@@ -446,7 +460,10 @@
                             "/usr/share/emacs/site-lisp/elpa/mu4e-*")))))
   (when mu4e-dir
     (add-to-list 'load-path mu4e-dir)))
-(require 'mu4e)
+;; Mail is an optional system-level component.  Do not make a missing Debian
+;; package fatal to all of Emacs; the settings below remain ready for whenever
+;; mu4e is installed.
+(require 'mu4e nil :noerror)
 
 ;; Where OfflineIMAP writes the maildir, and how mu4e refreshes it. `-o -q' runs
 ;; a quick, one-shot sync (no held connection); drop `-q' for a full sync.
@@ -575,10 +592,13 @@
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
- '(package-selected-packages nil)
  '(package-vc-selected-packages
-   '((rainbow-csv :vc-backend Git :url
+   '((emacs-zulip :vc-backend Git :url
+		  "https://github.com/suky57/emacs-zulip")
+     (rainbow-csv :vc-backend Git :url
 		  "https://github.com/emacs-vs/rainbow-csv")
+     (emacs-codex-ide :vc-backend Git :url
+		      "https://github.com/dgillis/emacs-codex-ide")
      (claude-code-ide :vc-backend Git :url
 		      "https://github.com/manzaltu/claude-code-ide.el"))))
 (custom-set-faces

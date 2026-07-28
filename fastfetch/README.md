@@ -2,6 +2,8 @@
 
 System information display configuration.
 
+Uses `default-logo.txt` as its custom ASCII-art logo by default.
+
 ## Modules
 
 Displays the following system info on shell startup:
@@ -17,5 +19,5 @@ Displays the following system info on shell startup:
 
 Called from `.zshrc` on shell startup:
 ```bash
-fastfetch --logo-type file --logo /home/simon/ascii/machine.txt
+fastfetch
 ```

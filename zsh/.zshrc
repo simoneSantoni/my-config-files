@@ -22,7 +22,7 @@ export PATH
 export ZSH="$HOME/.oh-my-zsh"
 ZSH_THEME="robbyrussell"
 
-plugins=(git zsh-syntax-highlighting zsh-autosuggestions zsh-history-substring-search)
+plugins=(git zsh-autosuggestions zsh-history-substring-search zsh-syntax-highlighting)
 
 # zsh-completions (must be added to fpath before compinit)
 fpath+=${ZSH_CUSTOM:-${ZSH:-~/.oh-my-zsh}/custom}/plugins/zsh-completions/src
@@ -88,10 +88,4 @@ fi
 #                                STARTUP
 # =============================================================================
 
-if [[ "$(hostname)" == *stellaris* ]]; then
-  fastfetch --logo-type file --logo ~/ascii/grogu.txt
-elif [[ "$(hostname)" == *3610* ]]; then
-  fastfetch --logo-type file --logo ~/.config/fastfetch/3610.txt
-else
-  fastfetch --logo-type file --logo ~/.config/fastfetch/"$(hostname)".txt
-fi
+fastfetch

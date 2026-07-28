@@ -95,16 +95,17 @@ Shell configuration with Oh-My-Zsh and Zinit.
 
 ## Installation
 
-Symlink each config directory to `~/.config/`, the shell config to `~/`, and the
-Emacs config into `~/.emacs.d/`:
+Run the idempotent linker to connect the standard application config paths to
+this checkout. Existing files are moved to a timestamped directory under
+`~/.local/state/my-config-files/backups/` before links are created:
 
 ```bash
-for dir in nvim neomutt neovide fastfetch; do
-  ln -sf "$(pwd)/$dir" ~/.config/"$dir"
-done
-ln -sf "$(pwd)/zsh/.zshrc" ~/.zshrc
-ln -sf "$(pwd)/emacs/init.el" ~/.emacs.d/init.el
+./scripts/link-configs.sh
 ```
+
+The script links Neovim, NeoMutt, Neovide, and Fastfetch under `~/.config/`,
+`zsh/.zshrc` as `~/.zshrc`, and only `emacs/init.el` inside `~/.emacs.d/` so
+Emacs can keep generated packages and caches alongside it.
 
 ## Theme
 

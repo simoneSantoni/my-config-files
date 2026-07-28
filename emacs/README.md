@@ -46,6 +46,11 @@ Installed from ELPA/MELPA (required explicitly in `init.el`):
 `transient` (pulled in by `claude-code-ide`) and `modus-themes` are also present
 as dependencies / alternatives.
 
+`gnu-elpa-keyring-update` is bootstrapped before other packages so GNU ELPA
+signature verification continues to work when distribution-provided signing
+keys become stale. Verification is relaxed only while installing that official
+keyring package, then returns to Emacs's normal policy.
+
 ## System dependencies
 
 These are needed by packages that compile native components or shell out:
