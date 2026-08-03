@@ -62,6 +62,7 @@
                            doom-modeline
                            minions
                            nerd-icons
+                           all-the-icons
                            ef-themes
                            solarized-theme
                            doom-themes
@@ -69,16 +70,39 @@
                            diff-hl
                            lsp-mode
                            corfu
+                           cape
+                           vertico
+                           orderless
+                           marginalia
+                           consult
+                           embark
+                           embark-consult
                            eldoc-box
                            julia-mode
                            ess
+                           reformatter
+                           quarto-mode
+                           rainbow-delimiters
                            sqlite3
-                           org-roam)))
+                           org-roam
+                           smudge)))
   (dolist (pkg required-packages)
     (unless (package-installed-p pkg)
       (unless (assq pkg package-archive-contents)
         (package-refresh-contents))
-      (package-install pkg))))
+      (package-install pkg)))
+  ;; Record the full set as "selected". package.el only marks packages at
+  ;; install time, and the Custom block at the bottom of this file used to pin
+  ;; `package-selected-packages' back to nil on every startup -- which made
+  ;; `M-x package-autoremove' regard every installed package as an orphan
+  ;; eligible for deletion. The Git-installed packages (below) are appended
+  ;; because autoremove consults this same list for them; keep both lists in
+  ;; sync when adding or dropping a package.
+  (setq package-selected-packages
+        (append required-packages
+                '(gnu-elpa-keyring-update
+                  claude-code-ide emacs-codex-ide rainbow-csv emacs-zulip
+                  dired-sidebar org-sidebar all-the-icons-dired))))
 
 ;; claude-code-ide isn't published to GNU/NonGNU ELPA or MELPA, so it can't be
 ;; installed with `package-install'. Pull it straight from its Git repository
@@ -110,6 +134,33 @@
 (unless (package-installed-p 'emacs-zulip)
   (package-vc-install "https://github.com/suky57/emacs-zulip"))
 
+;; MELPA occasionally advertises a dired-sidebar snapshot before its tarball is
+;; available. Install from the requested upstream repository instead; its sole
+;; required package, `dired-subtree', is resolved from MELPA automatically.
+;; `package-vc-install' also compiles generated internal forms, which have no
+;; source-file cookie and otherwise produce a spurious lexical-binding warning.
+;; Suppress only that cookie check while installing; all substantive compiler
+;; warnings remain enabled.
+(unless (package-installed-p 'dired-sidebar)
+  (require 'bytecomp)
+  (let ((bytecomp--inhibit-lexical-cookie-warning t))
+    (package-vc-install "https://github.com/jojojames/dired-sidebar")))
+
+;; org-sidebar is installed from its requested upstream repository. Its
+;; Package-Requires header lets package-vc resolve org-ql and the remaining
+;; dependencies from the configured archives.
+(unless (package-installed-p 'org-sidebar)
+  (require 'bytecomp)
+  (let ((bytecomp--inhibit-lexical-cookie-warning t))
+    (package-vc-install "https://github.com/alphapapa/org-sidebar")))
+
+;; Add all-the-icons glyphs to ordinary Dired buffers. Install the requested
+;; integration from upstream; the icon library itself comes from MELPA above.
+(unless (package-installed-p 'all-the-icons-dired)
+  (require 'bytecomp)
+  (let ((bytecomp--inhibit-lexical-cookie-warning t))
+    (package-vc-install "https://github.com/jtbm37/all-the-icons-dired")))
+
 ;; Import PATH (and other env) from the login shell. GUI Emacs launched from a
 ;; desktop launcher gets a minimal PATH that omits ~/.local/bin, so tools like
 ;; the `claude' CLI used by claude-code-ide aren't found. This fixes that.
@@ -122,6 +173,13 @@
 ;; as `static-when' that ship in compat but not in Emacs 30.x. Ensuring compat
 ;; is loaded first guarantees those macros are defined before transient loads.
 (require 'compat)
+
+;; --- File sidebar -----------------------------------------------------------
+;; A lightweight project/file tree backed by Dired. Keep it autoloaded so it
+;; adds no startup work until the sidebar is first opened.
+(setq dired-sidebar-theme 'nerd-icons)
+(global-set-key (kbd "C-x C-n") #'dired-sidebar-toggle-sidebar)
+(add-hook 'dired-mode-hook #'all-the-icons-dired-mode)
 
 ;; --- Markdown ---------------------------------------------------------------
 ;; markdown-mode: major mode for editing Markdown; use it for .md/.markdown.
@@ -145,8 +203,14 @@
 ;; org-roam dies at startup with "EmacSQL could not find or compile a back-end".
 ;; If Emacs is ever rebuilt with --with-sqlite3, the built-in backend wins
 ;; automatically and `sqlite3' becomes dead weight that can be dropped.
-(setq org-roam-directory (expand-file-name "~/org/roam"))
-(setq org-roam-db-location (expand-file-name "~/org/roam/org-roam.db"))
+;; The knowledge base is the whole academic organization repo: every active
+;; org file there carries a file-level ID and is an org-roam node. The db
+;; lives inside the repo (dot-file, gitignored) so the index travels with it.
+(setq org-roam-directory (expand-file-name "~/org-mode"))
+(setq org-roam-db-location (expand-file-name "~/org-mode/.org-roam.db"))
+;; Keep archived/binary trees out of the node list, mirroring the exclusions
+;; org-config.el applies to `org-agenda-files'. Lock files (.#foo.org) too.
+(setq org-roam-file-exclude-regexp '("archive/" "attachments/" "cv/" "\\.#"))
 ;; Suppress the v2 migration prompt: this is a fresh install, not a v1 upgrade.
 (setq org-roam-v2-ack t)
 ;; Show each node's title, then its tags, in the completion list.
@@ -162,6 +226,9 @@
 (global-set-key (kbd "C-c n i") #'org-roam-node-insert)
 (global-set-key (kbd "C-c n c") #'org-roam-capture)
 (global-set-key (kbd "C-c n l") #'org-roam-buffer-toggle)
+;; Org sidebars: task overview and navigable outline tree, respectively.
+(global-set-key (kbd "C-c n s") #'org-sidebar-toggle)
+(global-set-key (kbd "C-c n t") #'org-sidebar-tree-toggle)
 
 ;; --- Distraction-free writing (olivetti / writeroom-mode / darkroom) ---------
 ;; Three takes on the same idea, kept side by side because they differ in how
@@ -235,6 +302,44 @@
 (require 'nerd-icons)
 (setq doom-modeline-minor-modes t)
 
+;; The `time' and `battery' segments at the tail of the `main' modeline only
+;; render when their underlying global modes are on; without these two lines
+;; both segments are dead weight. Clock only -- the load average shown by
+;; default is noise -- and the battery readout is wanted on this laptop.
+(setq display-time-default-load-average nil)
+(display-time-mode 1)
+(display-battery-mode 1)
+
+;; Live word count in prose buffers. The default mode list covers markdown,
+;; org and gfm but not the TeX modes, where most long-form writing here
+;; actually happens -- add them.
+(setq doom-modeline-enable-word-count t)
+(dolist (mode '(tex-mode latex-mode))
+  (add-to-list 'doom-modeline-continuous-word-count-modes mode))
+
+;; Buffer encoding is UTF-8 everywhere on this machine, so announcing it in
+;; every buffer conveys nothing. `nondefault' shows the segment only when the
+;; encoding is unusual -- exactly when it matters.
+(setq doom-modeline-buffer-encoding 'nondefault)
+
+;; line:column rather than line alone -- LSP diagnostics and compiler errors
+;; address positions by column, so the modeline should speak the same language.
+(column-number-mode 1)
+
+;; Show file names as project-relative paths (abbreviated), e.g.
+;; my-config-files/e/init.el, instead of the bare base name.
+(setq doom-modeline-buffer-file-name-style 'truncate-with-project)
+
+;; Always spell out error/warning counts in the check segment instead of only
+;; tinting an icon (`auto', the default, drops the counts on narrow windows).
+(setq doom-modeline-check 'full)
+
+;; Appearance: a slightly taller bar breathes better at this font size, and
+;; the hud draws a mini indicator of the window's position in the buffer in
+;; place of the plain bar.
+(setq doom-modeline-height 28)
+(setq doom-modeline-hud t)
+
 ;; Custom segment: the Emacs logo plus the host OS logo (Tux), drawn as
 ;; Nerd Font glyphs (so they inherit the mode-line face and scale with the
 ;; font). `nf-custom-emacs' is the Emacs icon; `nf-linux-tux' is the penguin.
@@ -294,6 +399,29 @@
   (add-hook hook #'display-line-numbers-mode)
   (add-hook hook #'hl-line-mode))
 
+;; --- Session persistence (built-ins) -----------------------------------------
+;; savehist-mode   -- persist minibuffer histories (M-x, file prompts, org-roam
+;;                    searches) across sessions.
+;; recentf-mode    -- track recently visited files; `recentf-open' completes
+;;                    over them. C-x C-r shadows `find-file-read-only', which
+;;                    reads better as a recent-files key than as its default.
+;; save-place-mode -- reopen every file at the position point last had in it.
+(savehist-mode 1)
+(recentf-mode 1)
+(setq recentf-max-saved-items 200)
+(global-set-key (kbd "C-x C-r") #'recentf-open)
+(save-place-mode 1)
+
+;; Keep backup files (`foo~') and auto-save files (`#foo#') out of working
+;; directories, where they litter dired listings, grep results and git status.
+;; Both go under ~/.emacs.d with the rest of the generated state. Emacs creates
+;; the backup directory itself, but the auto-save one must already exist.
+(setq backup-directory-alist
+      `(("." . ,(expand-file-name "backups" user-emacs-directory))))
+(setq auto-save-file-name-transforms
+      `((".*" ,(expand-file-name "auto-saves/" user-emacs-directory) t)))
+(make-directory (expand-file-name "auto-saves" user-emacs-directory) t)
+
 ;; --- Default font -----------------------------------------------------------
 ;; JuliaMono Nerd Font Mono (includes Nerd Font glyphs/icons). Applies to the
 ;; current and all future frames.
@@ -306,9 +434,11 @@
 (global-set-key (kbd "C-x g") #'magit-status)
 ;; diff-hl: show added/changed/removed lines in the fringe, live, in every
 ;; file-visiting buffer. Keep its indicators in sync with magit commits/stages.
+;; Only the post-refresh hook is needed: diff-hl 1.11 folded the old
+;; pre-refresh step into it (`diff-hl-magit-pre-refresh' is now an obsolete
+;; alias for `ignore').
 (require 'diff-hl)
 (global-diff-hl-mode 1)
-(add-hook 'magit-pre-refresh-hook #'diff-hl-magit-pre-refresh)
 (add-hook 'magit-post-refresh-hook #'diff-hl-magit-post-refresh)
 
 ;; --- Completion UI (corfu) --------------------------------------------------
@@ -338,6 +468,71 @@
   (corfu-popupinfo-mode 1)
   (setq corfu-popupinfo-delay '(0.3 . 0.2)))   ; (initial . subsequent)
 
+;; cape: extra `completion-at-point' sources layered *behind* whatever the
+;; mode or language server already provides -- file paths anywhere, and
+;; dabbrev (words already present in open buffers) as a last resort. Both are
+;; appended (the trailing t) so a live LSP server's candidates always win;
+;; cape only speaks up where the server has nothing to say.
+(require 'cape)
+(add-to-list 'completion-at-point-functions #'cape-file t)
+(add-to-list 'completion-at-point-functions #'cape-dabbrev t)
+
+;; --- Minibuffer completion (vertico + orderless + marginalia + consult + embark)
+;; corfu above is completion *in the buffer*; this stack is the same idea for
+;; the minibuffer. Five small packages that all ride the standard
+;; `completing-read' machinery rather than replacing it (no helm/ivy
+;; framework), so every prompt -- M-x, find-file, org-roam-node-find, lsp's
+;; own pickers -- benefits without per-command integration:
+;;   vertico    -- vertical, live-filtered candidate list.
+;;   orderless  -- match space-separated terms in any order ("roam find"
+;;                 matches org-roam-node-find). Plugged in via
+;;                 `completion-styles', which corfu consults too, so in-buffer
+;;                 LSP completion gets the same flexible matching for free.
+;;   marginalia -- annotations beside candidates (command docstrings and
+;;                 keybindings, file sizes/dates, buffer modes).
+;;   consult    -- enhanced versions of stock commands over that machinery;
+;;                 bound below where they beat the built-in outright.
+;;   embark     -- context actions on the candidate/thing at point; C-. is
+;;                 "right-click as a keystroke" (kill the buffer under the
+;;                 cursor in consult-buffer, insert the candidate, ...).
+;; savehist-mode (above) already persists the histories vertico sorts by.
+(vertico-mode 1)
+(marginalia-mode 1)
+(setq completion-styles '(orderless basic))
+(setq completion-category-defaults nil)
+;; Keep `basic' first for files so TRAMP method/host completion still works,
+;; and partial-completion so /u/sh/e still expands to /usr/share/emacs.
+(setq completion-category-overrides
+      '((file (styles basic partial-completion))))
+
+;; consult bindings. Deliberately conservative: C-s stays isearch (muscle
+;; memory; consult-line lives on the standard M-s search prefix instead), and
+;; C-x C-r stays recentf-open (consult-buffer lists recent files anyway).
+(global-set-key (kbd "C-x b")   #'consult-buffer)     ; buffers + recent + bookmarks
+(global-set-key (kbd "M-g g")   #'consult-goto-line)  ; goto-line with live preview
+(global-set-key (kbd "M-g M-g") #'consult-goto-line)
+(global-set-key (kbd "M-g i")   #'consult-imenu)      ; sections/defuns in buffer
+(global-set-key (kbd "M-s l")   #'consult-line)       ; search lines, pick from list
+(global-set-key (kbd "M-s r")   #'consult-ripgrep)    ; rg across the project
+;; Route xref result lists (eglot/lsp find-references, multi-hit
+;; find-definition) through consult's selectable list instead of a *xref*
+;; window.
+(setq xref-show-xrefs-function #'consult-xref)
+(setq xref-show-definitions-function #'consult-xref)
+
+(global-set-key (kbd "C-.")   #'embark-act)
+(global-set-key (kbd "C-;")   #'embark-dwim)
+(global-set-key (kbd "C-h B") #'embark-bindings)
+;; Glue package: embark actions/exports on consult candidate lists (e.g.
+;; export a consult-ripgrep search to a grep buffer with E).
+(with-eval-after-load 'consult (require 'embark-consult))
+
+;; which-key ships with Emacs 30: when a prefix key pauses, pop up the table
+;; of its completions. This is the discovery aid for the C-c C-* space that
+;; ESS, org-roam and the LSP clients all populate.
+(require 'which-key)
+(which-key-mode 1)
+
 ;; --- Help popups (eldoc) ----------------------------------------------------
 ;; Point-idle help: command signature and documentation, which for TeX means
 ;; digestif's own description plus the matching node of the LaTeX reference
@@ -360,8 +555,20 @@
 ;; eldoc-box renders that same eldoc output in a childframe at point -- the
 ;; actual "popup help message". C-h . (`eldoc-doc-buffer') remains the fallback
 ;; for the full, scrollable text when a node is longer than the box.
-(when (display-graphic-p)
-  (add-hook 'eglot-managed-mode-hook #'eldoc-box-hover-at-point-mode))
+;;
+;; The graphics check has to run per-buffer, not at init: under `emacs
+;; --daemon' no frame exists while init runs, so a top-level
+;; `display-graphic-p' is nil and GUI frames created later would silently
+;; never get the popup. Deciding inside the hook tests the frame the buffer
+;; actually appears on. And since lsp-mode publishes its hover docs through
+;; eldoc exactly as eglot does, hook both clients -- Python/Julia/R buffers
+;; get the same popup as TeX.
+(defun my-eldoc-box-enable-if-graphic ()
+  "Enable `eldoc-box-hover-at-point-mode' on graphical frames only."
+  (when (display-graphic-p)
+    (eldoc-box-hover-at-point-mode 1)))
+(add-hook 'eglot-managed-mode-hook #'my-eldoc-box-enable-if-graphic)
+(add-hook 'lsp-managed-mode-hook #'my-eldoc-box-enable-if-graphic)
 (setq eldoc-box-max-pixel-width 600)
 (setq eldoc-box-max-pixel-height 500)
 (setq eldoc-box-clear-with-C-g t)
@@ -447,33 +654,183 @@
                 ess-r-mode-hook))
   (add-hook hook #'lsp-deferred))
 
+;; --- R (ESS + Air + Quarto) --------------------------------------------------
+;; ESS is the R IDE core: `ess-r-mode' for source files, an inferior R
+;; process (M-x R) beside them, and the C-c C-* keys to move code across --
+;; C-c C-c sends the region/function/paragraph and steps, C-c C-z hops to the
+;; console. (That C-c C-c behaviour is ESS's own default binding; no need to
+;; rebind it.) The lsp-deferred hook above layers languageserver on top for
+;; diagnostics/rename/references. ESS is autoload-driven, so only settings
+;; live here; nothing to require at startup.
+;;
+;; R here is Fedora's rpm (4.6.x); `languageserver' is installed in the user
+;; library (~/R/...). Its `fs' dependency compiles against libuv, so a fresh
+;; machine needs `dnf install libuv-devel' before
+;; `install.packages("languageserver")' -- without it, fs/pkgload/roxygen2/
+;; languageserver all fail in a cascade.
+(setq ess-style 'RStudio)            ; plain indentation, no aggressive
+                                     ; argument alignment -- matches Air's output
+(setq ess-ask-for-ess-directory nil) ; don't prompt for a directory on M-x R
+(setq ess-eval-visibly 'nowait)      ; echo sent code without blocking Emacs
+;; ESS's own flymake backend (lintr) would double-report next to the lintr
+;; diagnostics languageserver already publishes through lsp-mode.
+(setq ess-use-flymake nil)
+
+(defun my-ess-r-mode-setup ()
+  "Buffer-local niceties for R source buffers."
+  ;; 80 columns is Air's default line width; draw the guide at the same place
+  ;; the formatter wraps.
+  (setq-local fill-column 80)
+  (display-fill-column-indicator-mode 1)
+  ;; Nested calls are R's bread and butter; tint the parens by depth.
+  (rainbow-delimiters-mode 1))
+(add-hook 'ess-r-mode-hook #'my-ess-r-mode-setup)
+
+;; Air (Posit's R formatter, installed to ~/.local/bin -- reachable in GUI
+;; sessions via exec-path-from-shell above): format R buffers on save, wired
+;; up with reformatter. `air format --stdin-file-path FILE' reads the buffer
+;; from stdin and writes the result to stdout; the path is used only to
+;; locate an air.toml and apply that project's settings/exclusions -- the
+;; file itself is never read. reformatter evaluates :args in the buffer being
+;; formatted, so `buffer-file-name' is the right file each time (with a
+;; fallback for never-saved buffers, where Air just uses its defaults).
+(require 'reformatter)
+(reformatter-define air-format
+  :program "air"
+  :args (list "format" "--stdin-file-path"
+              (or buffer-file-name
+                  (expand-file-name "stdin.R" default-directory)))
+  :lighter " Air")
+(defun my-ess-r-enable-air ()
+  "Turn on format-on-save via Air when the executable is available.
+Guarded so a machine without Air degrades to no formatting instead
+of erroring on every save."
+  (when (executable-find "air")
+    (air-format-on-save-mode 1)))
+(add-hook 'ess-r-mode-hook #'my-ess-r-enable-air)
+
+;; Quarto (.qmd): quarto-mode's autoloads already map .qmd files to
+;; `poly-quarto-mode', where polymode carves the buffer into markdown prose
+;; and R chunks -- each chunk served by ess-r-mode, and so by lsp/corfu/Air
+;; exactly as a plain .R buffer would be. Rendering and preview additionally
+;; need the `quarto' CLI, which is not installed yet; editing works without
+;; it. Nothing to require at startup.
+
 ;; --- Email (mu4e) -----------------------------------------------------------
-;; mu4e ships with the Debian `mu4e' package (the `mu' indexer comes from
-;; `maildir-utils'). The package drops its Lisp in the site-lisp tree below;
-;; add it to `load-path' explicitly so `require' finds it. The Debian package
-;; installs under /usr/share/emacs/site-lisp/elpa/mu4e-<version>/, and that
-;; version is baked into the directory name, so glob for it rather than pinning
-;; a version that a future `apt upgrade' would change out from under us.
+;; mu4e and its `mu' indexer ship together in Fedora's `maildir-utils' package.
+;; Fedora installs the Lisp files in /usr/share/emacs/site-lisp/mu4e, while
+;; Debian uses a versioned /usr/share/emacs/site-lisp/elpa/mu4e-<version>
+;; directory. Add whichever layout exists so this config remains portable.
 ;; mu4e is the front end only -- mail is fetched by OfflineIMAP into ~/.maildir
 ;; and indexed by `mu', and sent via msmtp.
-(let ((mu4e-dir (car (last (file-expand-wildcards
-                            "/usr/share/emacs/site-lisp/elpa/mu4e-*")))))
+(let ((mu4e-dir
+       (seq-find
+        #'file-directory-p
+        (append '("/usr/share/emacs/site-lisp/mu4e")
+                (reverse
+                 (file-expand-wildcards
+                  "/usr/share/emacs/site-lisp/elpa/mu4e-*"))))))
   (when mu4e-dir
     (add-to-list 'load-path mu4e-dir)))
-;; Mail is an optional system-level component.  Do not make a missing Debian
+;; Mail is an optional system-level component. Do not make a missing system
 ;; package fatal to all of Emacs; the settings below remain ready for whenever
 ;; mu4e is installed.
 (require 'mu4e nil :noerror)
 
-;; Where OfflineIMAP writes the maildir, and how mu4e refreshes it. `-o -q' runs
-;; a quick, one-shot sync (no held connection); drop `-q' for a full sync.
-(setq mu4e-maildir "~/.maildir")
-(setq mu4e-get-mail-command "offlineimap -o -q")
-(setq mu4e-update-interval 300)               ; auto-sync every 5 minutes
+;; How mu4e refreshes mail. `-o' runs a one-shot sync (no held connection).
+;; No `-q': OfflineIMAP refuses to quick-sync an account that sets maxage
+;; (ours does, offlineimaprc) and just prints "ignoring -q" per folder, so the
+;; flag bought nothing but a warning -- every sync is a full scan of each
+;; folder's 30-day window regardless. The maildir root (~/.maildir) is
+;; deliberately NOT set here: since mu 1.3.8 the mu server owns that path,
+;; recorded once by `mu init --maildir=~/.maildir', and the old `mu4e-maildir'
+;; variable is obsolete -- mu4e ignores it in favour of the server's answer.
+(setq mu4e-get-mail-command "offlineimap -o")
+;; 10 minutes, not 5: Gmail rate-limits accounts that issue too many IMAP
+;; commands (observed 2026-07-28 as a flat ~10 s delay on every command after
+;; login, which made each sync take 10+ minutes and overlap the next timer
+;; firing -- keeping the account permanently throttled). Each one-shot
+;; offlineimap run walks all ~25 folders, so the polling interval is the
+;; multiplier on total command volume; don't lower it back below this.
+(setq mu4e-update-interval 600)
 ;; OfflineIMAP (like mbsync) rewrites message filenames on sync, so mu4e must
 ;; rename rather than assume stable names -- required or moves/flags desync.
 (setq mu4e-change-filenames-when-moving t)
 (setq mu4e-attachment-dir "~/Downloads")
+
+;; Headers view: add a dedicated attachment column. The stock Flgs column
+;; already encodes attachments (the `a' among its letters, from the `attach'
+;; flag mu sets on messages with real attachments), but a lone paperclip
+;; glyph is scannable where a letter buried in `Rap' is not.
+;; `mu4e-header-info-custom' is mu4e's extension point for computed columns:
+;; the :function receives the message plist at render time. nerd-icons is
+;; already loaded at startup as a doom-modeline dependency, and its glyphs
+;; are single-width in JuliaMono Nerd Font Mono -- an emoji paperclip would
+;; be double-width and break column alignment. Guarded like everything
+;; mu4e-related: a missing mu4e must not break startup (`add-to-list' on an
+;; undefined variable would, unlike the plain setqs above).
+(when (featurep 'mu4e)
+  (add-to-list 'mu4e-header-info-custom
+               '(:attach
+                 :name "Attach" :shortname "A"
+                 :help "Message has attachments"
+                 :function (lambda (msg)
+                             (if (memq 'attach (mu4e-message-field msg :flags))
+                                 (nerd-icons-faicon "nf-fa-paperclip")
+                               " "))))
+  ;; The default field list with :attach slotted in after the flags.
+  (setq mu4e-headers-fields
+        '((:human-date . 12)
+          (:flags . 6)
+          (:attach . 2)
+          (:mailing-list . 10)
+          (:from . 22)
+          (:subject))))
+
+;; Calendar invites -> org agenda. gnus-icalendar (built-in; it is what
+;; already renders the Accept/Tentative/Decline buttons on text/calendar
+;; messages in the mu4e view) ships an org exporter: `gnus-icalendar-org-setup'
+;; adds an "Export to Org" button to every invite and registers the capture
+;; template it uses (key "#" -- keep custom templates off that key). Exported
+;; events become entries with org timestamps under the "Invitations" headline
+;; of the file below. The file lives under the org repo's agenda/ tree, so
+;; org-config.el's `organization-org-files' pulls it into `org-agenda-files'.
+;; RSVP-ing from mu4e also updates the exported entry's state. org is already
+;; loaded at startup (org-roam above), so the require is cheap here.
+(when (featurep 'mu4e)
+  ;; mu4e's adapter for gnus-icalendar: advises the reply machinery so the
+  ;; Accept/Tentative/Decline buttons send through mu4e (msmtp) instead of
+  ;; gnus' own sending stack. mu4e-icalendar.el's commentary documents this
+  ;; require + gnus-icalendar-setup as the supported installation.
+  (require 'mu4e-icalendar)
+  (gnus-icalendar-setup)
+  (require 'gnus-icalendar)
+  ;; The org-buttons row probes whether the event is already in the org files
+  ;; (`gnus-icalendar-find-org-event-file'), which touches org-agenda
+  ;; internals. org itself is loaded at startup (org-roam) but org-agenda is
+  ;; not -- and without it the probe dies with (void-variable
+  ;; org-agenda-archives-mode) mid-render: the Accept/Decline buttons appear,
+  ;; the Export-to-Org row silently doesn't.
+  (require 'org-agenda)
+  (setq gnus-icalendar-org-capture-file
+        "~/org-mode/agenda/imports/invites.org")
+  (setq gnus-icalendar-org-capture-headline '("Invitations"))
+  (gnus-icalendar-org-setup)
+  ;; Duplicate-protection depends on the capture file being findable: the
+  ;; export button looks the event's UID up in `org-agenda-files' and only
+  ;; offers "Update Org Entry" when found. The org repo's org-config.el sets
+  ;; org-agenda-files, but only in sessions that loaded it -- in a mail-only
+  ;; session the variable is empty, every press appends a fresh duplicate,
+  ;; and the button never changes label. Registering the capture file here
+  ;; keeps lookups working everywhere; when org-config.el loads it rebuilds
+  ;; the list wholesale and picks this file up again via its agenda/ scan.
+  (add-to-list 'org-agenda-files gnus-icalendar-org-capture-file)
+  ;; The capture template is :immediate-finish -- a successful export shows
+  ;; nothing at all, which reads as a dead button. Say what happened.
+  (advice-add 'gnus-icalendar-sync-event-to-org :after
+              (lambda (&rest _)
+                (message "Invite exported to %s"
+                         gnus-icalendar-org-capture-file))))
 
 ;; Gmail's special folders, as they appear under ~/.maildir/gmail. OfflineIMAP
 ;; flattens Gmail's "[Gmail]/X" hierarchy into single dotted directory names
@@ -492,8 +849,8 @@
 
 ;; Jump-to-folder shortcuts (the `j' command in the headers/main view). Every
 ;; maildir OfflineIMAP syncs gets a key, so this list mirrors the Gmail label
-;; set; add a line here when a new label appears. `training', `sociology' and
-;; `it' are real labels that are simply empty inside the 90-day `maxage' window.
+;; set; add a line here when a new label appears. `training' and `sociology'
+;; are real labels that may be empty inside the 30-day `maxage' window.
 (setq mu4e-maildir-shortcuts
       '(;; System folders.
         (:maildir "/gmail/INBOX"             :key ?i)
@@ -520,8 +877,7 @@
         (:maildir "/gmail/outreach"          :key ?u)
         (:maildir "/gmail/computing"         :key ?o)
         (:maildir "/gmail/training"          :key ?y)
-        (:maildir "/gmail/sociology"         :key ?z)
-        (:maildir "/gmail/it"                :key ?x)))
+        (:maildir "/gmail/sociology"         :key ?z)))
 
 ;; Identity.
 (setq user-mail-address "sim.santoni@gmail.com")
@@ -582,16 +938,198 @@
 (with-eval-after-load 'zulip
   (advice-add 'zulip--api-get-profile-sync :filter-return
               #'zulip--prefer-delivery-email))
+
+;; Inline images. Zulip messages arrive as rendered HTML and zulip-ui hands
+;; them to shr, which fetches every <img> itself via `url-queue-retrieve'.
+;; Out of the box every image stays a gray placeholder box, for two stacked
+;; upstream bugs:
+;;
+;; 1. Image URLs in message HTML are relative ("/user_uploads/...").
+;;    `zulip--insert-content' tries to hand shr a base URL by let-binding
+;;    `shr-base', but `shr-insert-document' rebinds `shr-base' to nil on
+;;    entry, so the binding is discarded (it also holds the wrong type --
+;;    `url-generic-parse-url' output where shr expects `shr-parse-base'
+;;    output). The relative URL reaches `url-retrieve' inside url-queue's
+;;    `ignore-errors', which chokes silently; the job just rots in the queue.
+;;    The way that works (eww does this) is wrapping the DOM in a synthetic
+;;    (base ((href . url)) ...) node, which shr's own `shr-tag-base' picks up
+;;    inside that rebinding -- so override `zulip--insert-content' with a copy
+;;    that does exactly that. Drop the override when upstream fixes it.
+;;
+;; 2. With URLs absolutized, the fetch reaches the realm but /user_uploads/
+;;    requires authentication: the anonymous fetch gets redirected to the
+;;    login page, shr cannot decode HTML as an image, and the placeholder is
+;;    again never replaced. The package knows how to authenticate
+;;    (`zulip--api-auth-header'); the image request just never carries it.
+;;
+(defun zulip--insert-content-with-base (html)
+  "Render message HTML like `zulip--insert-content', with a working base URL.
+Wraps the DOM in a (base ((href . <server>))) node so shr can
+absolutize the relative /user_uploads/ image URLs; see the comment
+above for why let-binding `shr-base' (what upstream does) cannot work."
+  (if (and zulip-render-html
+           (fboundp 'libxml-parse-html-region))
+      (let ((dom (with-temp-buffer
+                   (insert html)
+                   (libxml-parse-html-region (point-min) (point-max))))
+            (server (and (bound-and-true-p zulip--current-connection)
+                         (zulip--connection-server zulip--current-connection))))
+        (zulip--dom-highlight-mentions dom)
+        (let ((shr-use-fonts nil)
+              (shr-width (min 80 (- (window-width) 4))))
+          (shr-insert-document
+           (if server (list 'base (list (cons 'href server)) dom) dom))))
+    (insert (zulip--strip-html html))))
+(with-eval-after-load 'zulip
+  (advice-add 'zulip--insert-content :override
+              #'zulip--insert-content-with-base))
+;;
+;; The header cannot be bound at render time -- url-queue runs the real
+;; `url-retrieve' later from a timer -- but it runs it with the job's
+;; context-buffer current, and that buffer is the zulip buffer holding the
+;; buffer-local `zulip--current-connection'. So advise the (internal) runner:
+;; when the job came from a zulip buffer AND its URL is on that connection's
+;; realm, add the Basic-auth header. The URL check keeps the API key from ever
+;; being sent to a foreign host (e.g. external image previews).
+(defun zulip--auth-image-fetch (orig job)
+  "Add realm API auth to url-queue JOBs requested from Zulip buffers."
+  (let* ((ctx (url-queue-context-buffer job))
+         (conn (and (buffer-live-p ctx)
+                    (boundp 'zulip--current-connection)
+                    (buffer-local-value 'zulip--current-connection ctx))))
+    (if (and conn
+             (string-prefix-p (zulip--connection-server conn)
+                              (url-queue-url job)))
+        (let ((url-request-extra-headers
+               (cons (cons "Authorization" (zulip--api-auth-header conn))
+                     url-request-extra-headers)))
+          (funcall orig job))
+      (funcall orig job))))
+(with-eval-after-load 'zulip
+  (require 'url-queue)
+  (advice-add 'url-queue-start-retrieve :around #'zulip--auth-image-fetch))
+
+;; url-queue kills any job 5 seconds after it starts (`url-queue-timeout') and
+;; a killed image job also leaves the placeholder behind -- too tight for
+;; downloading images over a slow link. (Safe as a plain setq: defcustom does
+;; not clobber a value that is already set when url-queue loads later.)
+(setq url-queue-timeout 30)
 ;;
 ;; `zulip-doom' in the same package registers SPC leader bindings for Doom
 ;; Emacs' evil setup; this is a vanilla config, so it is deliberately not loaded.
 (global-set-key (kbd "C-c z") #'zulip-home)
+
+;; --- Music (smudge / Spotify) ------------------------------------------------
+;; Smudge controls Spotify from Emacs: playback, search, playlists, liked
+;; songs, and a player-status segment in the mode line. Playback commands go
+;; over a pluggable transport (`smudge-transport', default `connect' = the
+;; Spotify Connect Web API, which needs a Premium account; flip it to `dbus'
+;; to drive a locally running desktop client over MPRIS instead -- more
+;; limited, but works without Premium). Everything else (search, playlists)
+;; always goes over the Web API regardless of transport, and that needs an
+;; OAuth app of your own: create one at
+;; https://developer.spotify.com/dashboard with redirect URI
+;; http://127.0.0.1:8080/smudge_api_callback, then put the client id and
+;; secret in ~/.keys/spotify-client-id.txt and
+;; ~/.keys/spotify-client-secret.txt (one value per file -- the same scheme
+;; msmtprc's passwordeval uses; credentials never live in this repo). Missing
+;; files must not break startup: the binding below still works, and
+;; `smudge-bootstrap' just tells you what to set up.
+(defun smudge--read-key-file (file)
+  "Return the trimmed contents of FILE, or nil if it is not readable."
+  (when (file-readable-p file)
+    (string-trim
+     (with-temp-buffer
+       (insert-file-contents file)
+       (buffer-string)))))
+;; Plain setq before the package loads is safe for the same reason as
+;; `url-queue-timeout' above: defcustom does not clobber an already-set value.
+(let ((id     (smudge--read-key-file "~/.keys/spotify-client-id.txt"))
+      (secret (smudge--read-key-file "~/.keys/spotify-client-secret.txt")))
+  (when (and id secret)
+    (setq smudge-oauth2-client-id id
+          smudge-oauth2-client-secret secret)))
+
+;; Keep a music client out of startup, like magit and zulip above. The search
+;; commands carry autoload cookies, but the useful entry point is the command
+;; keymap, and that cannot be autoloaded the obvious way: `smudge-command-map'
+;; is a plain defvar, so its *value* is the keymap while key lookup follows a
+;; symbol's *function* cell -- `(global-set-key (kbd "C-c s")
+;; 'smudge-command-map)' would just error when pressed. Upstream's README
+;; sidesteps this with use-package's :bind-keymap; this is what :bind-keymap
+;; actually expands to: a stand-in command that loads the package, rebinds the
+;; prefix to the real keymap (its value, now available), and replays the
+;; pending prefix press via `set-transient-map' so even the very first
+;; C-c s behaves like the real prefix (C-c s SPC plays/pauses, n/b skip,
+;; t s searches tracks, p m lists playlists, d picks a device, ...).
+;;
+;; C-c s rather than upstream's suggested C-c .: that key is org-time-stamp,
+;; and enabling smudge's own prefix machinery (`smudge-keymap-prefix') would
+;; put it in a minor-mode map that shadows org's binding in every org-roam
+;; buffer. A plain global binding on a free key stays out of every major
+;; mode's way.
+(defun smudge-bootstrap ()
+  "Load smudge, hand C-c s over to `smudge-command-map', and start remote mode."
+  (interactive)
+  (require 'smudge)
+  (global-set-key (kbd "C-c s") smudge-command-map)
+  (set-transient-map smudge-command-map)
+  (if (string-empty-p smudge-oauth2-client-id)
+      (message "smudge: no Spotify app credentials in ~/.keys -- see the Music section of init.el")
+    ;; The status timer polls every 5s; only start it once credentials exist,
+    ;; or it would raise an OAuth error at every tick.
+    (global-smudge-remote-mode 1)))
+(global-set-key (kbd "C-c s") #'smudge-bootstrap)
+
+;; Upstream guard: smudge's OAuth flow (`smudge-api-oauth2-auth', rewritten
+;; upstream in early 2026) blocks Emacs in `(while ... (sleep-for 0.5))'
+;; until the browser hits its 127.0.0.1:8080 callback -- and it binds
+;; `inhibit-message', hiding even its own "Waiting..." hint, so a missed
+;; browser tab or a redirect-URI mismatch in the Spotify dashboard looks like
+;; a plain freeze with no way out. Worse, C-g out of that wait leaves
+;; `smudge-api-oauth2-auth-in-progress' stuck at t, and the remote-mode poll
+;; timer then re-freezes Emacs every 5s in a *second* loop that spins on that
+;; flag forever. The advice below makes the flow survivable: say what is
+;; being waited on, and on timeout (120s covers a login + consent
+;; round-trip), C-g, or error, reset the state flags, stop the callback
+;; server, and turn the poll mode back off so nothing silently retries.
+;; `with-timeout' works here because timers fire inside `sleep-for' (verified
+;; -- the same mechanism smudge's own callback server relies on). Remove this
+;; if upstream ever bounds the wait and clears the flag on abort itself.
+(defun smudge--auth-abort (why)
+  "Clean up after a failed smudge OAuth attempt, explaining WHY.  Return nil."
+  (setq smudge-api-oauth2-auth-code nil
+        smudge-api-oauth2-callback-state nil
+        smudge-api-oauth2-auth-in-progress nil)
+  (ignore-errors (smudge-api-oauth2-stop-server))
+  (when (bound-and-true-p global-smudge-remote-mode)
+    (global-smudge-remote-mode -1))
+  (message "smudge: authorization %s -- check the browser tab and the app's redirect URI, then retry C-c s" why)
+  nil)
+
+(defun smudge--auth-bounded (orig &rest args)
+  "Run ORIG (smudge's blocking OAuth flow) with a timeout and C-g/error cleanup."
+  (message "smudge: waiting for Spotify authorization in your browser (C-g aborts)...")
+  (condition-case err
+      (with-timeout (120 (smudge--auth-abort "timed out"))
+        (apply orig args))
+    (quit (smudge--auth-abort "was quit"))
+    (error (smudge--auth-abort (error-message-string err))
+           (signal (car err) (cdr err)))))
+
+(with-eval-after-load 'smudge-api
+  (advice-add 'smudge-api-oauth2-auth :around #'smudge--auth-bounded))
 
 (custom-set-variables
  ;; custom-set-variables was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
+ '(custom-safe-themes
+   '("088cd6f894494ac3d4ff67b794467c2aa1e3713453805b93a8bcb2d72a0d1b53"
+     "0f1341c0096825b1e5d8f2ed90996025a0d013a0978677956a9e61408fcd2c77"
+     "4594d6b9753691142f02e67b8eb0fda7d12f6cc9f1299a49b819312d6addad1d"
+     default))
  '(package-vc-selected-packages
    '((emacs-zulip :vc-backend Git :url
 		  "https://github.com/suky57/emacs-zulip")
@@ -600,7 +1138,8 @@
      (emacs-codex-ide :vc-backend Git :url
 		      "https://github.com/dgillis/emacs-codex-ide")
      (claude-code-ide :vc-backend Git :url
-		      "https://github.com/manzaltu/claude-code-ide.el"))))
+		      "https://github.com/manzaltu/claude-code-ide.el")))
+ '(safe-local-variable-directories '("/home/simon/org-mode/")))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.

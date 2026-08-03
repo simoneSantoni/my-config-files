@@ -1,0 +1,45 @@
+[general]
+accounts = Gmail
+pythonfile = ~/.offlineimap.py
+ui = basic
+# Abort a stalled IMAP read instead of blocking forever: without a socket
+# timeout, one dropped connection hangs the whole one-shot sync (and mu4e
+# never sees it finish).
+socktimeout = 60
+
+[Account Gmail]
+localrepository = GmailLocal
+remoterepository = GmailRemote
+maxage = 30
+# Some client copying mail INTO Gmail (Thunderbird-style, per its
+# "From - <date>" stamp) prepends a blank line + mbox separator to the
+# message source. That makes strict RFC 822 parsers (mu) see zero headers:
+# no date (1970), no subject, sorted out of sight in mu4e. Strip the junk
+# right after every sync, before mu indexes. See the script's docstring.
+postsynchook = python3 /home/simon/githubRepos/my-config-files/emacs/fix-leading-mbox-line.py
+
+[Repository GmailLocal]
+type = Maildir
+localfolders = ~/.maildir/gmail
+restoreatime = no
+
+[Repository GmailRemote]
+type = Gmail
+remoteuser = sim.santoni@gmail.com
+remotepasseval = gmail_app_password()
+ssl = yes
+sslcacertfile = /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
+# Gmail allows up to 15 simultaneous IMAP connections; 3 lets folders sync in
+# parallel (which also overlaps Gmail's per-command throttling delays when the
+# account is being rate-limited) while staying far from the limit.
+maxconnections = 3
+# Skip folders nothing in Emacs reads. Every synced folder costs IMAP round
+# trips on every run, and these two are pure waste:
+#   [Gmail]/Important -- Gmail's auto-classified duplicate view; not in
+#                        mu4e-maildir-shortcuts.
+#   [Gmail]/Trash     -- the user-created dead label (this account's real
+#                        system trash is the UK-locale [Gmail]/Bin, which
+#                        stays synced -- see mu4e-trash-folder in init.el).
+#   it                -- label retired from the Emacs setup (2026-07-29); it
+#                        still exists on Gmail but is no longer mirrored.
+folderfilter = lambda folder: folder not in ['[Gmail]/Important', '[Gmail]/Trash', 'it']

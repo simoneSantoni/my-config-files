@@ -41,6 +41,9 @@ Installed from ELPA/MELPA (required explicitly in `init.el`):
 | `doom-modeline` | Compact, informative mode-line |
 | `minions` | Collapse minor-mode lighters into a single menu |
 | `nerd-icons` | Glyph/icon set used by the mode-line |
+| `dired-sidebar` | Dired-backed file tree; toggle with `C-x C-n` |
+| `all-the-icons-dired` | File-type icons in ordinary Dired buffers |
+| `org-sidebar` | Org task/outline sidebars; toggle with `C-c n s` / `C-c n t` |
 | `ef-themes` | Legible light/dark themes (`ef-light` loaded by default) |
 
 `transient` (pulled in by `claude-code-ide`) and `modus-themes` are also present
@@ -61,6 +64,27 @@ These are needed by packages that compile native components or shell out:
 | `pdf-tools` (`epdfinfo`) | `poppler` + `glib` development headers, build toolchain |
 | `claude-code-ide` | `claude` CLI on `PATH` (resolved via `exec-path-from-shell`) |
 | Mode-line glyphs / default font | **JuliaMono Nerd Font Mono** (also run `M-x nerd-icons-install-fonts`) |
+
+### mu4e mail setup
+
+Fedora provides mu and mu4e in `maildir-utils`. Mail is downloaded by
+OfflineIMAP and sent by msmtp:
+
+```bash
+sudo dnf install maildir-utils offlineimap msmtp libsecret
+ln -sf "$(pwd)/offlineimaprc" ~/.offlineimaprc
+ln -sf "$(pwd)/offlineimap.py" ~/.offlineimap.py
+ln -sf "$(pwd)/msmtprc" ~/.msmtprc
+chmod 0600 ~/.keys/emacs_stellaris16.txt
+offlineimap -o
+mu index
+```
+
+The Gmail App Password is read from `~/.keys/emacs_stellaris16.txt`; that file
+must contain only the password and must remain readable only by its owner. The
+tracked configuration contains no credential. The same file is used for Gmail
+IMAP and SMTP. OfflineIMAP keeps the most recent 30 days of mail. The TLS
+trust-store path is Fedora-specific.
 
 ## Notable configuration
 

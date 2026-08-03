@@ -21,6 +21,8 @@ Dotfiles for a Linux desktop environment running i3 window manager with Ubuntu Y
 │   └── neovide.desktop
 ├── fastfetch/         System info display
 │   └── config.jsonc
+├── mc/                Midnight Commander configuration
+│   └── skins/         True-colour skins
 ├── emacs/             GNU Emacs configuration
 │   └── init.el        Single-file config (package.el + MELPA)
 ├── hhkb/              HHKB Studio keyboard keymap profiles
@@ -60,6 +62,11 @@ GUI frontend for Neovim. FiraCode Nerd Font Mono at 8pt, maximized on startup, a
 ### Fastfetch (`fastfetch/`)
 
 System information display run on shell startup via `.zshrc`. Shows OS, kernel, CPU, GPU, memory, disk, local IP, and color palette.
+
+### Midnight Commander (`mc/`)
+
+True-colour `ef-elea-light` skin matching the Emacs theme. See
+[`mc/README.md`](mc/README.md) for requirements, preview, and activation.
 
 ### Emacs (`emacs/`)
 
@@ -104,8 +111,9 @@ this checkout. Existing files are moved to a timestamped directory under
 ```
 
 The script links Neovim, NeoMutt, Neovide, and Fastfetch under `~/.config/`,
-`zsh/.zshrc` as `~/.zshrc`, and only `emacs/init.el` inside `~/.emacs.d/` so
-Emacs can keep generated packages and caches alongside it.
+the Midnight Commander skin under `~/.local/share/mc/skins/`, `zsh/.zshrc`
+as `~/.zshrc`, and only `emacs/init.el` inside `~/.emacs.d/` so Emacs can keep
+generated packages and caches alongside it.
 
 ## Theme
 

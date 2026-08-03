@@ -33,6 +33,7 @@ link_config "$repo_dir/nvim" "$HOME/.config/nvim"
 link_config "$repo_dir/neomutt" "$HOME/.config/neomutt"
 link_config "$repo_dir/neovide" "$HOME/.config/neovide"
 link_config "$repo_dir/fastfetch" "$HOME/.config/fastfetch"
+link_config "$repo_dir/mc/skins/ef-elea-light.ini" "$HOME/.local/share/mc/skins/ef-elea-light.ini"
 link_config "$repo_dir/zsh/.zshrc" "$HOME/.zshrc"
 link_config "$repo_dir/emacs/init.el" "$HOME/.emacs.d/init.el"
 
