@@ -9,8 +9,8 @@ Layer #0
   |LControl|A   |S   |D   |F   |G   |H   |J   |K   |L   |; : |' " |Return    |
   |00e1      |001d|001b|0006|0019|0005|0011|0010|0036|0037|0038|00e5    |5101|
   |LShift    |Z   |X   |C   |V   |B   |N   |M   |, < |. > |/ ? |RShift  |Fn1 |
-         |00e2|5101   |002c                        |00e6   |00e7|
-         |LAlt|Fn1    |Space                       |RAlt   |RMet|
+         |00e2|5101   |002c                        |00e7   |00e6|
+         |LAlt|Fn1    |Space                       |RMeta  |RAlt|
                          |00f4   |5102|00f6   |                              |0052|0051|
                          |LB     |Fn2 |RB     |                              |Up  |Down|
                                                                              |0050|004f|

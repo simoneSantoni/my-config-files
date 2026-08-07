@@ -13,6 +13,21 @@ keyboard's stored profiles — **the keyboard is the source of truth**, this rep
 versioned snapshot + restore point. There is no symlink/deploy step; changes are
 pushed to the keyboard with `write-profile`, not by editing a live config file.
 
+## Getting the tool (it has gone missing before)
+
+`hhkb-studio-tools` lives at `~/.cargo/bin/hhkb-studio-tools` and is **not** packaged —
+it is a `cargo install` from git. On 2026-08-07 it was gone along with the entire Rust
+toolchain (no `~/.cargo`, no `cargo`/`rustc`, no distro `rust` package). Rebuild it
+without root:
+
+```bash
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal
+~/.cargo/bin/cargo install --git https://github.com/yuja/hhkb-studio-tools
+```
+
+`zsh/.zshrc` now puts `~/.cargo/bin` on `PATH`; in a non-login shell (or an agent's
+`Bash` tool) export it explicitly before use.
+
 ## The #1 gotcha: USB-only, and the keyboard hides on Bluetooth
 
 `hhkb-studio-tools` only works over the **wired USB** vendor interface. If you try to
@@ -30,15 +45,34 @@ To get usable:
 ## Finding the config interface
 
 Over USB the keyboard exposes 5 hidraw nodes; **numbering is not stable across
-replugs**. The config one is the vendor interface with **HID usage page `0xFF60`**
-(report descriptor starts `0660ff…`). Don't hardcode a number — probe:
+replugs**. The config one is the vendor interface with **HID usage page `0xFF60`**.
+Don't hardcode a number — probe.
+
+⚠️ Probing all five with `info` can **hang**: the `0xFF31` vendor node is a decoy that
+never returns. Narrow the field via sysfs first — the two vendor interfaces are the
+only ones with no `input/` subdirectory, so this rules out three of the five without
+opening any device:
 
 ```bash
-for n in 1 2 3 4 5; do echo "hidraw$n:"; hhkb-studio-tools info --device /dev/hidraw$n 2>&1 | head -1; done
+for n in $(ls /sys/class/hidraw | sed 's/hidraw//'); do
+  d=$(readlink -f /sys/class/hidraw/hidraw$n/device)
+  grep -q 04FE:0016 <<<"$d" || continue
+  printf "hidraw%-3s input=[%s]\n" "$n" "$(ls $d/input 2>/dev/null | tr '\n' ' ')"
+done
 ```
 
-The node returning `Product name: HHKB-Studio` is it (recently `/dev/hidraw2`). The
-`0xFF31` vendor node (`0631ff…`) is a decoy and hangs — don't use it.
+Then probe only the `input=[]` candidates, **always under `timeout`** so the decoy
+can't wedge the shell:
+
+```bash
+for n in <candidates>; do echo "hidraw$n:"; timeout 6 hhkb-studio-tools info --device /dev/hidraw$n 2>&1 | head -1; done
+```
+
+The node returning `Product name: HHKB-Studio` is it (2026-06-26: `hidraw2`;
+2026-08-07: `hidraw7`, with the five nodes enumerating as `hidraw6`–`hidraw10`).
+
+Note: `report_descriptor` is **not** exposed under `/sys/class/hidraw/*/device/` on
+this kernel, so you cannot identify the interface by its `0660ff…` descriptor prefix.
 
 ## Permissions
 
@@ -47,8 +81,12 @@ is **not** in the `input` group, so `/dev/input/event*` (evdev) is not readable 
 don't try to sniff keys that way. Use the ACL'd hidraw nodes:
 
 ```bash
-sudo setfacl -m u:simon:rw /dev/hidraw1 /dev/hidraw2 /dev/hidraw3 /dev/hidraw4 /dev/hidraw5
+sudo setfacl -m u:simon:rw $(ls -d /dev/hidraw* )   # or just the five HHKB nodes
 ```
+
+`sudo` here is **not** passwordless, so an agent cannot run this itself — hand the
+command to the user (`! sudo setfacl …`) and wait. Re-granting is needed after every
+replug, and the node numbers will have shifted by then.
 
 ## Data model
 
