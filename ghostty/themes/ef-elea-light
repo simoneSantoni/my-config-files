@@ -1,0 +1,46 @@
+# Ghostty theme based on Emacs ef-elea-light.
+# Palette source: ef-themes 2.2.0 by Protesilaos Stavrou (GPL-3.0-or-later).
+# Companion to mc/skins/ef-elea-light.ini; both track the same palette.
+#
+# ANSI slots map to the ef palette as follows. On a light background the
+# "bright" half cannot be lighter than the normal half without becoming
+# illegible, so it uses the -warmer/-cooler variants instead: they read as
+# a distinct hue at the same or better contrast against bg-main.
+#
+#   0/8   fg-main / fg-dim          8 is the conventional grey for dim text
+#   1-6   base hue                  red, green, yellow, MAGENTA, BLUE, cyan
+#   9-14  -warmer or -cooler hue    the variant with the most separation
+#   7/15  bg-alt / bg-dim           near-background, as light themes require
+#
+# Slots 4/5 and 12/13 are deliberately swapped against the ANSI convention:
+# blue sits in the magenta slot and magenta in the blue slot. Anything that
+# hardcodes "color 4 = blue" will therefore render purple, which is intended.
+# To undo, swap the two pairs back -- no other value depends on the order.
+
+palette = 0=#221321
+palette = 1=#c3303a
+palette = 2=#00601f
+palette = 3=#9a501f
+palette = 4=#80308f
+palette = 5=#375cc6
+palette = 6=#1f70af
+palette = 7=#d0d7ca
+palette = 8=#676470
+palette = 9=#d00000
+palette = 10=#007047
+palette = 11=#b04300
+palette = 12=#9f356a
+palette = 13=#444fcf
+palette = 14=#00677f
+palette = 15=#e3e9d6
+
+background = #edf5e2
+foreground = #221321
+
+# cursor is the palette's own `cursor' entry (magenta), not a hue reused from
+# the ANSI slots -- it has to stay visible on top of any of them.
+cursor-color = #770080
+cursor-text = #edf5e2
+
+selection-background = #d9d2ef
+selection-foreground = #221321

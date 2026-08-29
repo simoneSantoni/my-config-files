@@ -4,11 +4,21 @@ Personal zsh configuration with Oh-My-Zsh and Zinit plugin managers.
 
 ## Structure
 
-The `.zshrc` lives in this subdirectory (`zsh/.zshrc`) and is symlinked to `~/.zshrc`. It is organized into the following sections:
+Both files live in this subdirectory and are symlinked into `$HOME`.
+
+`zsh/.zshenv` -> `~/.zshenv` contains **only** PATH. Zsh sources it on every
+invocation (login, interactive, and plain `zsh -c` alike), which is what lets
+Emacs' `exec-path-from-shell` pick up the full PATH from a ~2ms non-interactive
+shell instead of a ~1s interactive login shell that first loads Oh-My-Zsh,
+compinit, Zinit, nvm and fastfetch. Add new PATH entries there, not in
+`.zshrc`; keep the file silent (no output, no tty assumptions).
+
+`zsh/.zshrc` -> `~/.zshrc` holds everything interactive, organized into the
+following sections:
 
 | Section | Description |
 |---------|-------------|
-| PATH | System and tool-specific path configuration |
+| PATH | Pointer to `.zshenv`, where PATH actually lives |
 | Oh My Zsh | Theme and plugin setup |
 | Zinit | Additional plugin manager with annexes |
 | Aliases | Command shortcuts |
@@ -61,6 +71,7 @@ Custom paths configured for:
 
 ```bash
 # Symlink to home directory
+ln -sf $(pwd)/zsh/.zshenv ~/.zshenv
 ln -sf $(pwd)/zsh/.zshrc ~/.zshrc
 
 # Reload configuration

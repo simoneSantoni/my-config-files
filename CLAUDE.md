@@ -23,12 +23,14 @@ These subdirectories have detailed `CLAUDE.md` files with architecture and comma
 | neovide | Close and reopen |
 | zsh | `source ~/.zshrc` |
 | emacs | Restart Emacs, or `M-x load-file` on `init.el` |
+| ghostty | `<C-S-,>` in a running Ghostty (reloads config + theme) |
 
 ## Symlink Deployment
 
-Configs are symlinked from this repo to `~/.config/`:
+Configs are symlinked from this repo to `~/.config/` (use
+`scripts/link-configs.sh`, which also backs up whatever it replaces):
 ```bash
-for dir in nvim neomutt neovide fastfetch; do
+for dir in nvim neomutt neovide fastfetch ghostty; do
   ln -sf $(pwd)/$dir ~/.config/$dir
 done
 ln -sf "$(pwd)/zsh/.zshrc" ~/.zshrc
@@ -52,13 +54,25 @@ The `.zshrc` lives in the `zsh/` subdirectory (symlinked to `~/.zshrc`).
 
 ## Theme Consistency
 
-All applications use **Ubuntu Yaru** color scheme:
+Two schemes, split by application — check which one a component belongs to
+before changing any color.
+
+**Ubuntu Yaru** (dark) — nvim, neomutt, neovide:
 - Background: `#2C001E` / `#300a24`
 - Foreground: `#F6F5F4` / `#eeeeec`
 - Accent: `#E95420` (Ubuntu orange)
 - Font: UbuntuMono Nerd Font / FiraCode Nerd Font
 
-When modifying colors in any component, keep them consistent with these values.
+**ef-elea-light** (light) — emacs, mc, ghostty:
+- Background: `#edf5e2` (bg-main)
+- Foreground: `#221321` (fg-main)
+- Accent: `#770080` (cursor magenta)
+- Font: JuliaMono Nerd Font Mono
+
+The ef-elea-light ports are hand-derived from ef-themes 2.2.0
+(`~/.emacs.d/elpa/ef-themes-*/ef-elea-light-theme.el` is the source of truth for
+the palette). `mc/skins/ef-elea-light.ini` and `ghostty/themes/ef-elea-light`
+must be kept in sync with each other when the palette changes.
 
 ## Verification Commands
 

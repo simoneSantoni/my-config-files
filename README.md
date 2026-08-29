@@ -21,6 +21,9 @@ Dotfiles for a Linux desktop environment running i3 window manager with Ubuntu Y
 │   └── neovide.desktop
 ├── fastfetch/         System info display
 │   └── config.jsonc
+├── ghostty/           Ghostty terminal emulator
+│   ├── config.ghostty
+│   └── themes/        Custom themes (ef-elea-light)
 ├── mc/                Midnight Commander configuration
 │   └── skins/         True-colour skins
 ├── emacs/             GNU Emacs configuration
@@ -30,6 +33,7 @@ Dotfiles for a Linux desktop environment running i3 window manager with Ubuntu Y
 │   ├── profile-backup.toml           Factory/known-good restore point
 │   └── profile-{0..3}-decoded.txt    Human-readable layout renders
 └── zsh/
+    ├── .zshenv        PATH only — sourced by every zsh invocation
     └── .zshrc         ZSH shell configuration
 ```
 
@@ -78,6 +82,17 @@ PDF viewing, an in-editor terminal, and Claude Code integration. See
 - **Theme**: ef-themes (`ef-light` default), JuliaMono Nerd Font Mono
 - **Build deps**: cmake + libtool (vterm), poppler + glib headers (pdf-tools)
 
+### Ghostty (`ghostty/`)
+
+GPU-accelerated terminal emulator (Fedora: `dnf copr enable scottames/ghostty`).
+The whole directory is symlinked to `~/.config/ghostty`, because Ghostty resolves
+custom themes from a `themes/` directory beside the config file.
+
+- **Theme**: `ef-elea-light`, a port of the Emacs ef-themes palette to Ghostty's
+  16 ANSI slots (`themes/ef-elea-light`) — same palette as `mc/skins/ef-elea-light.ini`
+- **Font**: JuliaMono Nerd Font Mono 13pt, matching `emacs/init.el`
+- **Reload**: `<C-S-,>` in a running Ghostty; `ghostty +validate-config` to check syntax
+
 ### HHKB Studio (`hhkb/`)
 
 Keymap profiles for an HHKB Studio (PD-ID100B, US) managed with
@@ -90,9 +105,15 @@ See [`hhkb/README.md`](hhkb/README.md) for the full reference and
 - **Editing requires USB**, not Bluetooth — switch to wired with **Fn+Control+0**; the config interface is the `0xFF60` vendor hidraw, found by probing with `hhkb-studio-tools info`
 - **Restore factory**: `hhkb-studio-tools write-profile --device $DEV --index 0 -i hhkb/profile-backup.toml`
 
-### ZSH (`.zshrc`)
+### ZSH (`.zshenv`, `.zshrc`)
 
 Shell configuration with Oh-My-Zsh and Zinit.
+
+`.zshenv` holds nothing but PATH. Zsh sources it on *every* invocation —
+including a bare `zsh -c` — so Emacs' `exec-path-from-shell` can read the full
+PATH without paying for `.zshrc` (Oh-My-Zsh, compinit, Zinit, nvm, fastfetch);
+that is why `exec-path-from-shell-arguments` is nil in `emacs/init.el`. Keep
+PATH there and everything else in `.zshrc`.
 
 - **Theme**: robbyrussell
 - **Plugins**: git, zsh-syntax-highlighting, zsh-autosuggestions, zsh-history-substring-search, zsh-completions
@@ -110,14 +131,16 @@ this checkout. Existing files are moved to a timestamped directory under
 ./scripts/link-configs.sh
 ```
 
-The script links Neovim, NeoMutt, Neovide, and Fastfetch under `~/.config/`,
-the Midnight Commander skin under `~/.local/share/mc/skins/`, `zsh/.zshrc`
-as `~/.zshrc`, and only `emacs/init.el` inside `~/.emacs.d/` so Emacs can keep
+The script links Neovim, NeoMutt, Neovide, Fastfetch, and Ghostty under `~/.config/`,
+the Midnight Commander skin under `~/.local/share/mc/skins/`, `zsh/.zshenv`
+and `zsh/.zshrc` as `~/.zshenv` and `~/.zshrc`, and only `emacs/init.el` inside `~/.emacs.d/` so Emacs can keep
 generated packages and caches alongside it.
 
 ## Theme
 
-All applications use the **Ubuntu Yaru** color scheme:
+Two color schemes are in use, split by application:
+
+**Ubuntu Yaru** (dark) — Neovim, NeoMutt, Neovide:
 
 | Element    | Value                          |
 |------------|--------------------------------|
@@ -126,9 +149,22 @@ All applications use the **Ubuntu Yaru** color scheme:
 | Accent     | `#E95420` (Ubuntu orange)      |
 | Font       | UbuntuMono / FiraCode Nerd Font |
 
+**ef-elea-light** (light) — Emacs, Midnight Commander, Ghostty:
+
+| Element    | Value                          |
+|------------|--------------------------------|
+| Background | `#edf5e2` (bg-main)            |
+| Foreground | `#221321` (fg-main)            |
+| Accent     | `#770080` (cursor magenta)     |
+| Font       | JuliaMono Nerd Font Mono       |
+
+Ported from [ef-themes](https://github.com/protesilaos/ef-themes) 2.2.0. When
+changing one of the three, keep `mc/skins/ef-elea-light.ini` and
+`ghostty/themes/ef-elea-light` in sync — both derive from the same palette.
+
 ## Dependencies
 
-**Core**: Neovim 0.10+, NeoMutt, Neovide, Fastfetch, GNU Emacs 30+, Oh-My-Zsh, Zinit
+**Core**: Neovim 0.10+, NeoMutt, Neovide, Fastfetch, Ghostty 1.3+, GNU Emacs 30+, Oh-My-Zsh, Zinit
 
 **Fonts**: UbuntuMono Nerd Font, UbuntuSans Nerd Font, FiraCode Nerd Font, JuliaMono Nerd Font
 

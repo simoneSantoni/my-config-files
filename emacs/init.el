@@ -52,13 +52,23 @@
                            compat
                            markdown-mode
                            markdown-toc
+                           mermaid-mode
                            olivetti
                            writeroom-mode
                            darkroom
                            csv-mode
                            casual
                            vterm
+                           ghostel
                            pdf-tools
+                           ;; treemacs already arrives as a dap-mode dependency;
+                           ;; naming it here makes the tree explorer a package
+                           ;; this config owns rather than an accident of the
+                           ;; debugger's dependency graph.
+                           treemacs
+                           calfw
+                           calfw-org
+                           calfw-cal
                            doom-modeline
                            minions
                            nerd-icons
@@ -69,6 +79,13 @@
                            magit
                            diff-hl
                            lsp-mode
+                           lsp-pyright
+                           consult-lsp
+                           dap-mode
+                           yasnippet
+                           yasnippet-snippets
+                           yasnippet-capf
+                           envrc
                            corfu
                            cape
                            vertico
@@ -79,12 +96,22 @@
                            embark-consult
                            eldoc-box
                            julia-mode
+                           julia-repl
                            ess
                            reformatter
                            quarto-mode
                            rainbow-delimiters
                            sqlite3
                            org-roam
+                           org-roam-ql
+                           org-roam-bibtex
+                           org-roam-ui
+                           ;; citar arrives as a citar-org-roam dependency, but
+                           ;; it is configured directly further down, so name it
+                           ;; here rather than let it look like an orphan.
+                           citar
+                           citar-org-roam
+                           org-ref
                            smudge)))
   (dolist (pkg required-packages)
     (unless (package-installed-p pkg)
@@ -102,7 +129,8 @@
         (append required-packages
                 '(gnu-elpa-keyring-update
                   claude-code-ide emacs-codex-ide rainbow-csv emacs-zulip
-                  dired-sidebar org-sidebar all-the-icons-dired))))
+                  dired-sidebar org-sidebar all-the-icons-dired
+                  insert-uuid))))
 
 ;; claude-code-ide isn't published to GNU/NonGNU ELPA or MELPA, so it can't be
 ;; installed with `package-install'. Pull it straight from its Git repository
@@ -161,10 +189,25 @@
   (let ((bytecomp--inhibit-lexical-cookie-warning t))
     (package-vc-install "https://github.com/jtbm37/all-the-icons-dired")))
 
-;; Import PATH (and other env) from the login shell. GUI Emacs launched from a
+;; insert-uuid: an RFC 4122 UUID generator (M-x insert-uuid), not on any
+;; archive. No dependencies beyond Emacs 27.1.
+(unless (package-installed-p 'insert-uuid)
+  (package-vc-install "https://github.com/theesfeld/insert-uuid"))
+
+;; Import PATH (and other env) from the shell. GUI Emacs launched from a
 ;; desktop launcher gets a minimal PATH that omits ~/.local/bin, so tools like
 ;; the `claude' CLI used by claude-code-ide aren't found. This fixes that.
+;;
+;; `exec-path-from-shell-arguments' defaults to '("-l" "-i") — an interactive
+;; login shell — which made startup pay for the whole of ~/.zshrc: oh-my-zsh,
+;; compinit, zinit and its annexes, nvm, fastfetch. That took ~1s and tripped
+;; exec-path-from-shell's own "execution took %dms" warning (it complains past
+;; `exec-path-from-shell-warn-duration-millis', 500ms). PATH now lives in
+;; ~/.zshenv, which zsh sources on *every* invocation, so a bare `zsh -c' sees
+;; the full PATH and nil here skips both rc files entirely (~20ms). If PATH
+;; ever moves back into ~/.zshrc this must go back to '("-l" "-i").
 (require 'exec-path-from-shell)
+(setq exec-path-from-shell-arguments nil)
 (when (or (memq window-system '(mac ns x pgtk))
           (daemonp))
   (exec-path-from-shell-initialize))
@@ -177,9 +220,59 @@
 ;; --- File sidebar -----------------------------------------------------------
 ;; A lightweight project/file tree backed by Dired. Keep it autoloaded so it
 ;; adds no startup work until the sidebar is first opened.
+;;
+;; Icons come from `all-the-icons-dired-mode' on `dired-mode-hook' — with that
+;; hook present dired-sidebar deliberately disables its own icon theming
+;; (`dired-sidebar-block-icon-display-modes', upstream issue #43), so the
+;; `dired-sidebar-theme' value is inert and dired-sidebar's built-in
+;; refresh-after-unfold never fires. all-the-icons-dired itself only redraws on
+;; `dired-readin'/`dired-revert' & co., which `dired-subtree-toggle' bypasses,
+;; so lines revealed by unfolding had no icons until a manual `g'. Hooking the
+;; refresh onto `dired-subtree-after-insert-hook' fixes that in the sidebar and
+;; in ordinary dired buffers alike (collapsing needs nothing: the overlays die
+;; with the deleted lines).
 (setq dired-sidebar-theme 'nerd-icons)
 (global-set-key (kbd "C-x C-n") #'dired-sidebar-toggle-sidebar)
 (add-hook 'dired-mode-hook #'all-the-icons-dired-mode)
+(defun my/all-the-icons-dired-subtree-refresh ()
+  "Redraw all-the-icons-dired icons after a dired-subtree insertion."
+  (when (bound-and-true-p all-the-icons-dired-mode)
+    (all-the-icons-dired--refresh)))
+(with-eval-after-load 'dired-subtree
+  (add-hook 'dired-subtree-after-insert-hook
+            #'my/all-the-icons-dired-subtree-refresh))
+
+;; --- Project tree (treemacs) -------------------------------------------------
+;; The second sidebar, deliberately kept alongside dired-sidebar rather than
+;; replacing it: dired-sidebar is a Dired buffer (every Dired key works, one
+;; directory at a time), treemacs is a persistent multi-project workspace with
+;; its own state file, git status decoration and follow-mode. `C-x t' is the
+;; prefix treemacs' own README uses, and it is free in Emacs 30 apart from the
+;; tab-bar map, which this config does not use.
+;;
+;; treemacs was already on disk as a dap-mode dependency (dap-mode's UI is
+;; built on treemacs, which is why `dap-python' is required inside the
+;; python-mode hook and not at startup); it is now named in
+;; `required-packages' above so it is owned rather than inherited. Nothing is
+;; `require'd here -- every entry point below is autoloaded, and treemacs
+;; reads its persisted workspace only when first opened.
+;;
+;; Icons: treemacs ships its own PNG/text themes and does not go through
+;; nerd-icons, so no icon wiring is needed (and none of the dired-sidebar
+;; workaround above applies). Git decoration needs a `git' binary plus Python 3
+;; for the "deferred" (asynchronous, per-file) mode; `simple' mode below is the
+;; pure-Elisp fallback that needs neither, chosen so a machine without Python 3
+;; on PATH degrades quietly instead of erroring at first open.
+(global-set-key (kbd "C-x t t") #'treemacs)
+(global-set-key (kbd "C-x t d") #'treemacs-select-directory)
+(global-set-key (kbd "C-x t B") #'treemacs-bookmark)
+(global-set-key (kbd "C-x t C-t") #'treemacs-find-file)
+(setq treemacs-git-mode 'simple
+      treemacs-follow-after-init t
+      treemacs-width 32
+      ;; Persisted workspaces are data, not config -- same policy as the diary
+      ;; and the org-roam database below.
+      treemacs-persist-file (expand-file-name "treemacs-persist" user-emacs-directory))
 
 ;; --- Markdown ---------------------------------------------------------------
 ;; markdown-mode: major mode for editing Markdown; use it for .md/.markdown.
@@ -188,6 +281,29 @@
 (add-to-list 'auto-mode-alist '("\\.markdown\\'" . markdown-mode))
 ;; markdown-toc: generate/refresh a table of contents (M-x markdown-toc-generate-toc).
 (require 'markdown-toc)
+;; mermaid-mode (MELPA, abrochard/mermaid-mode): major mode for Mermaid diagram
+;; files. Its autoloads already claim .mmd, so a plain `require' just makes the
+;; mode (syntax highlighting, indentation) available eagerly like markdown-mode
+;; above. Compiling/previewing a diagram (C-c C-c and friends) shells out to the
+;; mermaid-cli `mmdc' binary, which is NOT installed on this machine -- editing
+;; works regardless; install it (npm install -g @mermaid-js/mermaid-cli) if
+;; rendering from Emacs is ever wanted.
+(require 'mermaid-mode)
+
+;; --- Org display (inline images) ---------------------------------------------
+;; Show image links as images when an org file is visited, instead of leaving
+;; every figure as a bare [[file:...]] line to be revealed by hand. This is the
+;; startup variable rather than `(add-hook 'org-mode-hook
+;; #'org-toggle-inline-images)': the hook route runs a *toggle*, so it depends on
+;; the buffer's state at that moment and flips images back off wherever they are
+;; already displayed -- a file carrying `#+STARTUP: inlineimages', or org having
+;; drawn them itself during setup. `org-startup-with-inline-images' is the state
+;; org checks after that setup, so it lands on "on" every time, and a single file
+;; can still opt out with `#+STARTUP: noinlineimages'. `C-c C-x C-v'
+;; (`org-toggle-inline-images') stays the manual control -- still needed after an
+;; image is generated mid-session (babel results, a newly added figure), which
+;; does not re-run startup.
+(setq org-startup-with-inline-images t)
 
 ;; --- Notes (org-roam) -------------------------------------------------------
 ;; Zettelkasten-style linked notes over org-mode. org itself ships with Emacs
@@ -206,8 +322,8 @@
 ;; The knowledge base is the whole academic organization repo: every active
 ;; org file there carries a file-level ID and is an org-roam node. The db
 ;; lives inside the repo (dot-file, gitignored) so the index travels with it.
-(setq org-roam-directory (expand-file-name "~/org-mode"))
-(setq org-roam-db-location (expand-file-name "~/org-mode/.org-roam.db"))
+(setq org-roam-directory (expand-file-name "~/slimer"))
+(setq org-roam-db-location (expand-file-name "~/slimer/.org-roam.db"))
 ;; Keep archived/binary trees out of the node list, mirroring the exclusions
 ;; org-config.el applies to `org-agenda-files'. Lock files (.#foo.org) too.
 (setq org-roam-file-exclude-regexp '("archive/" "attachments/" "cv/" "\\.#"))
@@ -229,6 +345,235 @@
 ;; Org sidebars: task overview and navigable outline tree, respectively.
 (global-set-key (kbd "C-c n s") #'org-sidebar-toggle)
 (global-set-key (kbd "C-c n t") #'org-sidebar-tree-toggle)
+;; ~/org-mode/.dir-locals.el sets per-file org behavior (folding, logging,
+;; property inheritance) for the whole notes repo. Those variables carry no
+;; `safe-local-variable' predicate upstream, so visiting any note fires the
+;; "values that may not be safe" prompt. Whitelist the exact value pairs here
+;; instead of answering `!' in the prompt, which would grow the Custom-owned
+;; block at the end of this file. Value pairs, not blanket trust: if the
+;; .dir-locals.el changes, the prompt returns and the new value gets reviewed.
+(dolist (pair '((org-startup-folded . content)
+                (org-startup-indented . t)
+                (org-log-done . time)
+                (org-log-into-drawer . "LOGBOOK")
+                (org-use-property-inheritance . t)))
+  (add-to-list 'safe-local-variable-values pair))
+
+;; --- Calendar <-> org agenda -------------------------------------------------
+;; The agenda itself is configured inside the org repo
+;; (~/org-mode/org-config.el: `org-agenda-files', capture templates, refile,
+;; todo keywords) so it travels with the notes, not with this machine's Emacs.
+;; Until now that file only loaded when loaded by hand, which was fine for
+;; editing org files but useless for a calendar that should always know what
+;; the agenda holds. Load it at startup when the repo is present; guarded so a
+;; machine without the repo still boots (same policy as mu4e). org is already
+;; loaded above (org-roam) and the file requires org-agenda itself, so the
+;; real cost is just its recursive scan of the repo's org files.
+(let ((org-repo-config (expand-file-name "~/org-mode/org-config.el")))
+  (when (file-readable-p org-repo-config)
+    (load org-repo-config nil :nomessage)))
+;; The agenda entry point, on the binding the org manual reserves for it.
+(global-set-key (kbd "C-c a") #'org-agenda)
+
+;; Wire M-x calendar and the agenda together in both directions, using the
+;; org manual's own diary-sexp recipe rather than an external package:
+;; - agenda -> calendar ships with org (`c' in an agenda jumps to the date's
+;;   calendar); the mirror binding does not exist upstream, so `c' in the
+;;   calendar below opens that day's agenda.
+;; - diary -> agenda: `org-agenda-include-diary' folds diary entries into the
+;;   agenda, and a holiday sexp in the diary file is what puts holiday names
+;;   there (from `calendar-holidays' -- customize that list for local
+;;   holidays). That sexp is *not* org's own `org-calendar-holiday': as of
+;;   org 9.7 it reads `org-agenda-current-date', which only org-agenda binds.
+;;   Reached the other way -- `d' or `M-x diary' from the calendar, where
+;;   diary-lib binds `date' instead -- it hands nil to
+;;   `calendar-check-holidays', which then builds the holiday list with
+;;   `displayed-month' nil and fills *Warnings* with one "Bad holiday list
+;;   item" per entry in `calendar-holidays'. `os-diary-holiday-entry' below
+;;   takes whichever of the two is actually bound, so one diary file serves
+;;   both directions.
+;; - org -> calendar: the `org-diary' sexp lets `d' in the calendar list a
+;;   date's org entries. No duplicates in the agenda: org-agenda binds
+;;   `org-disable-agenda-to-diary' while it reads the diary, which switches
+;;   `org-diary' off for that pass (verified against org-agenda.el).
+;; Both sexps are nonmarking ("&", the manual's form) so calendar marking
+;; never has to scan the org repo; holidays are marked from
+;; `calendar-holidays' directly, hand-written diary lines (birthdays, ...)
+;; mark themselves. The diary file is bootstrapped once if missing, like the
+;; org-roam directory above -- it is data, not config, so it lives in
+;; ~/.emacs.d rather than this repo.
+(require 'calendar)
+(defvar org-agenda-current-date)         ; org.el, bound only while the agenda runs
+(defun os-diary-holiday-entry ()
+  "Holiday names for the diary date being processed, or nil.
+A drop-in for `org-calendar-holiday' that also works outside the
+agenda: the org agenda binds `org-agenda-current-date', while
+`diary-list-entries' binds the unprefixed `date'.  Both are read
+through `boundp' rather than referenced directly, because neither
+is globally special -- each owning file declares it for itself."
+  (require 'holidays)
+  (let* ((day (or (and (boundp 'org-agenda-current-date) org-agenda-current-date)
+                  (and (boundp 'date) (symbol-value 'date))))
+         (holidays (and (consp day) (calendar-check-holidays day))))
+    (and holidays (mapconcat #'identity holidays "; "))))
+(unless (file-exists-p diary-file)
+  (with-temp-file diary-file
+    (insert "&%%(os-diary-holiday-entry)\n&%%(org-diary)\n")))
+(setq org-agenda-include-diary t)
+(setq calendar-mark-holidays-flag t)
+(setq calendar-mark-diary-entries-flag t)
+(define-key calendar-mode-map (kbd "c") #'org-calendar-goto-agenda)
+
+;; --- Month grid (calfw) ------------------------------------------------------
+;; calfw is a calendar *view* framework: a month grid with entry text drawn
+;; inside the day cells, which the built-in `calendar' cannot do -- it renders
+;; bare day numbers and needs `d' or the agenda to say what is on a date. Both
+;; stay: `calendar' remains the thing bound to date arithmetic, holidays and
+;; the diary (`calendar-mode-map' above is untouched), calfw is the read-only
+;; overview.
+;;
+;; Two sources are loaded, matching the two the section above wires together:
+;;   calfw-org -- org agenda entries (`org-agenda-files', so it follows
+;;                ~/org-mode/org-config.el and its mid-session refresh advice);
+;;   calfw-cal -- the diary file, which is where holidays and hand-written
+;;                lines live.
+;; `os-calfw-open' shows them in one grid rather than making a choice between
+;; `calfw-org-open-calendar' and `calfw-cal-open-diary-calendar' -- those two
+;; each open their own single-source buffer and are left available.
+;;
+;; calfw 2.0 renamed everything from the old `cfw:' prefix to `calfw-'; this
+;; section uses the new names, so any recipe found online predating that
+;; release needs `calfw-compat' (not loaded here) or translating.
+;;
+;; Nothing is `require'd at startup: all four entry points are autoloaded, and
+;; calfw-org pulls in org-agenda, which is already loaded by org-config.el.
+(autoload 'calfw-open-calendar-buffer "calfw" nil t)
+(autoload 'calfw-org-create-source "calfw-org")
+(autoload 'calfw-cal-create-source "calfw-cal")
+(defun os-calfw-open ()
+  "Open a calfw month grid showing org agenda entries and diary entries."
+  (interactive)
+  (require 'calfw-org)
+  (require 'calfw-cal)
+  (calfw-open-calendar-buffer
+   ;; nil org-files = whatever `org-agenda-files' holds when the grid is
+   ;; built, so the mid-session refresh advice in org-config.el is honoured.
+   :contents-sources (list (calfw-org-create-source nil "org" "SteelBlue")
+                           (calfw-cal-create-source "diary" "ForestGreen"))
+   :view 'month
+   :sorter #'calfw-org--schedule-sorter))
+;; `C-c v' for *v*iew, not `C-c c': the org manual reserves that one for
+;; `org-capture', and ~/org-mode/org-config.el already defines the templates
+;; it would run.
+(global-set-key (kbd "C-c v") #'os-calfw-open)
+
+;; --- Bibliography, graph, and node queries ----------------------------------
+;; Four things layered on org-roam, all from MELPA:
+;;   citar + citar-org-roam -- a completion UI over the .bib for org-cite, with
+;;                             org-roam nodes standing in as the note store;
+;;   org-roam-bibtex        -- capture templates and attachment handling keyed
+;;                             by citekey, plus `orb-insert-link';
+;;   org-roam-ui            -- the node graph, served to a browser;
+;;   org-roam-ql            -- a query language over the node database.
+;;
+;; This block deliberately sits after ~/org-mode/org-config.el is loaded above.
+;; That file owns the bibliography path -- it is what puts bibliography.bib on
+;; `org-cite-global-bibliography', `bibtex-completion-bibliography', and
+;; `citar-bibliography' -- because the bibliography travels with the notes repo
+;; rather than with this machine. `org-roam-bibtex-mode' parses the .bib as it
+;; turns on, so it has to find that path already set.
+
+;; Hand org-cite's three processors to citar in place of the `basic' ones org
+;; ships with: `C-c C-x @' then completes on authors and titles and marks which
+;; keys already have a note or a PDF, and citations fontify in the buffer. No
+;; `require' is needed -- citar's autoload file registers the processor inside a
+;; `with-eval-after-load' on `oc', so citar itself loads only on first use.
+(setq org-cite-insert-processor 'citar
+      org-cite-follow-processor 'citar
+      org-cite-activate-processor 'citar)
+
+;; A reference note here is an org-roam node whose ROAM_REFS property holds the
+;; citekey, not an entry in citar's own one-file-per-key store.
+;; `citar-org-roam-mode' is what swaps citar's notes source over to org-roam, so
+;; the "has a note" indicator in the citar UI is answered from the roam
+;; database. Deferring it until citar loads is early enough: nothing consults
+;; the notes source before that.
+(with-eval-after-load 'citar
+  (citar-org-roam-mode 1)
+  ;; Where a newly captured reference note is born, relative to
+  ;; `org-roam-directory'. The repo's convention is that a literature note
+  ;; lives with the material it belongs to; this is only the landing spot, and
+  ;; `C-c C-w' refiles it from there.
+  (setq citar-org-roam-subdir "areas/research/readings"))
+
+;; ORB writes the citekey into ROAM_REFS itself, and its default format is
+;; org-ref's `cite:' link syntax. The repo cites with org-cite, so the property
+;; has to carry a bare `@key' element instead; otherwise org-roam and org-cite
+;; disagree about what a ref is and a note stops matching its BibTeX entry.
+;; Setting the variable before the mode turns on is what makes it stick --
+;; `defcustom' leaves an already-bound value alone.
+(setq orb-roam-ref-format 'org-cite)
+;; Autoloaded, so this call is also what loads ORB (and bibtex-completion with
+;; it). Enabled eagerly rather than deferred because it hooks org-roam-capture,
+;; which is reachable from `C-c n c' without citar ever being involved.
+(org-roam-bibtex-mode 1)
+;; On the overlap with citar-org-roam: `org-roam-bibtex-mode' also reaches for
+;; citar's note handling, but only through `citar-open-note-function', which
+;; citar 1.x retired in favour of the notes-source API and now leaves unbound.
+;; ORB guards that assignment with `boundp' and so skips it -- citar-org-roam
+;; keeps the notes source, and ORB contributes its captures, its attachment
+;; handling, and `orb-insert-link'. Having both on is fine.
+
+;; org-ref is installed for its BibTeX-side tooling, NOT as a citation system.
+;; org-ref and org-cite are two complete, competing answers to citations in org:
+;; org-ref has its own `cite:' links, its own export path and its own insert
+;; commands, and this repo already answers all three with org-cite + citar
+;; (processors set above; `orb-roam-ref-format' is pinned to `org-cite' so
+;; ROAM_REFS stays `@key' rather than org-ref's `cite:key'). None of that
+;; changes here -- org-ref installs no org-cite processor and hijacks nothing
+;; unless one of its own insert commands is called, so the two coexist as long
+;; as `cite:' links stay out of the notes.
+;;
+;; What it is actually here for is everything that happens *before* a citekey
+;; exists: fetching a BibTeX entry from a DOI, arXiv id, ISBN or PubMed id
+;; (`doi-utils-add-bibtex-entry-from-doi', `arxiv-add-bibtex-entry',
+;; `isbn-to-bibtex', `pubmed-insert-bibtex-from-pmid'), normalising a pasted
+;; entry (`org-ref-clean-bibtex-entry' -- key generation, field ordering,
+;; non-ASCII replacement, DOI-derived URL), and pulling the PDF down next to
+;; it. citar and ORB both read bibliography.bib; neither writes to it.
+;;
+;; Left autoloaded, like magit and the theme packs: org-ref pulls in citeproc,
+;; ox-pandoc, request and avy, and `require'-ing it eagerly would also install
+;; its `cite:' link types at startup for no gain. Every command named here is
+;; autoloaded, so calling one loads the package. (Two of its optional files,
+;; org-ref-helm.el and org-ref-ivy.el, fail to byte-compile on install because
+;; helm and ivy aren't installed -- expected, and nothing loads them.)
+;;
+;; `bibtex-completion-bibliography' -- set by ~/org-mode/org-config.el, same as
+;; for citar -- is where these commands file new entries, so there is no
+;; separate `org-ref-default-bibliography' to keep in sync.
+(global-set-key (kbd "C-c n d") #'doi-utils-add-bibtex-entry-from-doi)
+;; In a .bib buffer, upgrade bibtex-mode's own `C-c C-c' (`bibtex-clean-entry')
+;; to org-ref's superset, and put the DOI-driven entry updater next to it.
+(with-eval-after-load 'bibtex
+  (define-key bibtex-mode-map (kbd "C-c C-c") #'org-ref-clean-bibtex-entry)
+  (define-key bibtex-mode-map (kbd "C-c C-u") #'doi-utils-update-bibtex-entry-from-doi))
+
+;; org-roam-ui serves the graph over a local websocket and opens it in the
+;; browser. Its defaults already sync the Emacs theme, follow point, and redraw
+;; on save, so there is nothing to set; it stays autoloaded, which keeps the
+;; websocket and httpd servers from starting until the graph is first opened.
+
+;; org-roam-ql queries the node database (`(and (tags "research") (todo))' and
+;; the like) into an agenda-style buffer. Autoloaded; `org-roam-ql-ql' is a
+;; separate package, not installed, that would additionally expose these
+;; predicates to org-ql.
+
+;; Keys continue org-roam's own `C-c n' prefix (f/i/c/l/s/t are bound above).
+(global-set-key (kbd "C-c n b") #'orb-insert-link)
+(global-set-key (kbd "C-c n r") #'citar-open-notes)
+(global-set-key (kbd "C-c n g") #'org-roam-ui-open)
+(global-set-key (kbd "C-c n q") #'org-roam-ql-search)
 
 ;; --- Distraction-free writing (olivetti / writeroom-mode / darkroom) ---------
 ;; Three takes on the same idea, kept side by side because they differ in how
@@ -271,6 +616,24 @@
 ;; absent, vterm asks whether to compile it, and a minibuffer prompt during
 ;; startup can abort the whole initialization (notably for daemon sessions).
 ;; package.el has already installed vterm and registered its autoloads above.
+
+;; --- ghostel ----------------------------------------------------------------
+;; A second terminal, kept next to vterm rather than instead of it. Ghostel is
+;; also a native module, but wraps libghostty-vt (the VT engine behind the
+;; Ghostty terminal) rather than libvterm, which buys the protocols libvterm
+;; does not speak: Kitty keyboard and graphics (images in the terminal),
+;; synchronized output, OSC 8 hyperlinks and desktop notifications. vterm stays
+;; because claude-code-ide and julia-repl are both built on it.
+;;
+;; Unlike vterm there is nothing to build: the module is a prebuilt binary
+;; downloaded on first `M-x ghostel'. That download is still a prompt-shaped
+;; first-run cost, so the same rule as vterm applies -- no `require' here, the
+;; autoloads package.el registered are enough, and a daemon startup never
+;; blocks on it.
+;;
+;; `C-c t' rather than the README's `C-x m': that is `compose-mail', which mu4e
+;; territory below has a legitimate claim on.
+(global-set-key (kbd "C-c t") #'ghostel)
 
 ;; --- claude-code-ide --------------------------------------------------------
 ;; Runs the Claude Code CLI inside a vterm buffer with IDE integration.
@@ -361,10 +724,18 @@
 (minions-mode 1)
 (doom-modeline-mode 1)
 
-;; --- Themes (ef-themes + solarized + doom-themes) ----------------------------
-;; Three theme collections are installed; only one theme is ever active, and
-;; `ef-elea-light' below is it. The other two are here to switch to with
-;; M-x load-theme, so they are deliberately not `require'd or loaded: a theme
+;; --- Themes (ef-themes + leuven + solarized + doom-themes) -------------------
+;; Only one theme is ever active, and `ef-elea-light' below is it: the light half
+;; of Protesilaos' Elea pair, a warm green-tinted background with the org
+;; typography set up further down. `leuven' -- Fabrice Niessen's light theme,
+;; which ships *with Emacs* (etc/themes/leuven-theme.el), so it needs no package,
+;; no entry in `required-packages' and nothing installed, the built-in themes
+;; directory already being the `t' element of `custom-theme-load-path' -- is the
+;; fallback that the org styling below is modelled on. Its companion
+;; `leuven-dark' is bundled too.
+;;
+;; The three installed theme *packs* are here to switch to with M-x load-theme,
+;; so they are deliberately not `require'd or loaded for their themes' sake: a
 ;; pack costs nothing until a theme from it is loaded, and each package's
 ;; autoloads already add its directory to `custom-theme-load-path', which is all
 ;; `load-theme' and `custom-available-themes' need to find them.
@@ -373,9 +744,12 @@
 ;; leaves the old one's faces showing through wherever the new one is silent.
 ;; M-x disable-theme (or ef-themes' own commands, which do this for you) first.
 ;;
-;;   ef-themes        -- Protesilaos' legible light/dark pairs (13 x 2).
-;;                       M-x ef-themes-select, or ef-themes-toggle for the pair
-;;                       named in `ef-themes-to-toggle' below.
+;;   ef-themes        -- Protesilaos' legible light/dark pairs (13 x 2); the
+;;                       active pack. M-x ef-themes-select, or ef-themes-toggle
+;;                       for the pair named in `ef-themes-to-toggle' below; the
+;;                       `require' is what makes that pair, the heading styles
+;;                       and the palette overrides below all take effect before
+;;                       the theme is loaded at the end of this section.
 ;;   solarized-theme  -- bbatsov's Emacs port of Ethan Schoonover's Solarized;
 ;;                       13 variants (solarized-light/-dark, the -high-contrast
 ;;                       and -selenized-* sets, plus gruvbox/wombat/zenburn).
@@ -386,6 +760,211 @@
 ;;                       (require 'doom-themes) and are not enabled here.
 (require 'ef-themes)
 (setq ef-themes-to-toggle '(ef-elea-light ef-elea-dark))
+
+;; --- Giving the ef-themes leuven's org typography ----------------------------
+;; Out of the box the ef-themes render every org headline at the body text's
+;; size and draw nothing around it, so an org buffer is a wall of same-sized
+;; lines. leuven answers that in two ways: it scales the document title (1.8)
+;; and level-1 headlines (1.3) up, and it rules levels 1-2 off with a horizontal
+;; line above the headline (`:overline'), level 1 also sitting on a tinted band.
+;; Both are reproduced below, for every ef theme at once.
+;;
+;; The lever is that since ef-themes 2.0 the pack no longer defines its own
+;; faces: it derives from the modus-themes, and `ef-themes.el' calls
+;; `ef-themes-define-compatibility-aliases' to make `ef-themes-headings',
+;; `ef-themes-common-palette-overrides' and friends plain `defvaralias'es for
+;; the `modus-themes-*' options. So these are settings, not theme edits -- no
+;; ef-*-theme.el file is touched (they are package files and would be
+;; overwritten on the next update anyway), and all 38 ef themes, present and
+;; future, pick them up. leuven reads neither variable, so it stays as it is.
+;;
+;; `ef-themes-headings' is an alist of (LEVEL . PROPERTIES); a float in
+;; PROPERTIES is a height multiplier of the `default' face. Level 0 is the
+;; `#+title' line, 1-8 the headlines, `t' the fallback, and the two `agenda-*'
+;; keys are the agenda's own headings. Where leuven leaves levels 2-8 flat at
+;; 1.0 this tapers 2 and 3 slightly -- same intent, gentler, because the ef
+;; palettes already colour-code each level. leuven scales `agenda-date' to 1.6
+;; as well; at 1.6 every date line in a week view shouts, so it is 1.3 here.
+;; The title is 1.6 rather than leuven's 1.8: at 1.8 over a 13pt default it
+;; overpowers the level-1 headlines it sits above.
+(setq ef-themes-headings
+      '((0 . (1.6))                     ; #+title, as leuven's org-document-title
+        (1 . (1.3))
+        (2 . (1.15))
+        (3 . (1.05))
+        (agenda-date . (1.3))
+        (agenda-structure . (variable-pitch 1.6))
+        (t . (1.0))))
+
+;; The rules and the level-1 band. The modus heading faces already read
+;; `bg-heading-N', `fg-heading-N' and `overline-heading-N' out of the palette --
+;; the backgrounds and overlines are `unspecified' in every ef theme, which is
+;; why nothing shows -- so a palette override is all this needs: no
+;; `custom-set-faces', no post-load hook, nothing to undo when the theme is
+;; disabled. Point them at *semantic* names rather than hex, which is what makes
+;; one setting right for all 38 themes: `bg-blue-subtle' resolves to #c9d8f3 in
+;; ef-elea-light and to #26486c in ef-elea-dark, so the band stays a light-on-
+;; dark or dark-on-light blue either way rather than a fixed colour that only
+;; works in one of them. `fg-heading-1' normally maps to `rainbow-1' (a dusty
+;; red in elea); `blue-cooler' (#162f8f in elea-light) is the darkest blue in
+;; the palette, which is what holds up against the pale band behind it. Only
+;; level 1 gets the band; leuven tints level 2 too, but stacked bands muddy the
+;; darker ef palettes, so level 2 keeps the rule alone.
+(setq ef-themes-common-palette-overrides
+      '((bg-heading-1 bg-blue-subtle)
+        (fg-heading-1 blue-cooler)
+        (overline-heading-1 border)
+        (overline-heading-2 border)))
+
+;; Without this the overline stops where the headline text stops, which reads as
+;; a dash rather than a rule; org only extends heading faces to the window edge
+;; when told to. Global org setting, so it applies under leuven as well -- which
+;; is what leuven's own documentation asks for in any case.
+(setq org-fontify-whole-heading-line t)
+
+;; --- The org file header block ----------------------------------------------
+;; Every org-roam note opens with the same three-part block, and none of it is
+;; readable as *structure* in a stock ef theme -- the drawer, the title and the
+;; tag lines are all one shade of grey metadata:
+;;
+;;     :PROPERTIES:  :ID: ...  :END:     <- red band, `bg-red-subtle'  (#f0c6bf)
+;;     #+title:  #+filetags:  #+startup: <- purple, `bg-magenta-subtle' (#edd2f0)
+;;     #+options:  #+property:  ...         (every keyword in the block below)
+;;
+;; The asymmetry is deliberate: the drawer is banded whole, keyword and value
+;; alike, because it is boilerplate to skip over -- one solid block the eye can
+;; slide past. The `#+' lines carry content worth reading, so only the keyword
+;; is tinted and the title, the tag list and the rest of the values are left on
+;; the plain background.
+;;
+;; Both are the `-subtle' member of their pair, which is the palest each colour
+;; gets in the ef palettes: the `-intense' alternatives (#ff8f88, #df9fff) are
+;; saturated enough to read as a warning rather than as a header. Do not reach
+;; for the `-nuanced' names to go lighter still -- they are inherited from
+;; modus' fallback palette rather than defined by the ef themes, so they do not
+;; track the theme (`bg-magenta-nuanced' is *darker* than `-subtle' in
+;; ef-elea-light, not lighter).
+;;
+;; Unlike the headings above, these faces carry no palette hook: modus defines
+;; org-drawer, org-property-value, org-document-info-keyword and the rest with a
+;; foreground only, so a `bg-*' override has nothing to attach to and the
+;; backgrounds have to be set on the faces themselves.
+;;
+;; Which is why this runs from `enable-theme-functions' rather than
+;; `ef-themes-post-load-hook': the latter only fires from ef-themes' own
+;; commands, so a plain M-x load-theme would silently skip it. The abstract hook
+;; fires on every `enable-theme', whatever route got there. Two further details
+;; make this revert cleanly instead of leaking:
+;;
+;;   - `custom-theme-set-faces' attributes the faces *to the ef theme* rather
+;;     than to the user, so `disable-theme' takes them away again; plain
+;;     `custom-set-faces' would outrank whatever theme was loaded next and would
+;;     follow you into leuven.
+;;   - colours come from `ef-themes-get-color-value', not from the
+;;     `ef-themes-with-colors' macro. The macro `eval's its body dynamically, so
+;;     the lexical THEME argument of a function like this one is not visible
+;;     inside it -- the error is swallowed and the faces silently do not change.
+;;   - the `custom-theme-recalc-face' sweep at the end is load-bearing, and its
+;;     absence fails in a way designed to waste an afternoon. `enable-theme'
+;;     recalculates faces from the snapshot of `theme-settings' it takes
+;;     *before* running `enable-theme-functions', so faces this hook adds during
+;;     that hook are recorded but never applied to a frame that already exists
+;;     -- which on a normal GUI startup is every frame. New frames build their
+;;     faces from the recorded specs and so look perfectly correct, meaning the
+;;     bug is invisible to any test that makes a frame to inspect. See the NOW
+;;     argument in `custom-theme-set-faces': "the caller is responsible for
+;;     making the settings take effect later".
+;;
+;; `:extend t' is what makes each of these a band rather than a highlight behind
+;; the text: it carries the background past the end of line to the window edge,
+;; matching the headline rules above. `org-document-title' must restate its
+;; `:inherit' because setting a face for a theme replaces that theme's whole
+;; spec for it -- dropping the inherit would cost the 1.6 height set above.
+(defun os-ef-themes-org-header-faces (theme)
+  "Band the org header block for THEME when it is one of the ef-themes.
+Added to `enable-theme-functions'; a no-op for every other theme."
+  (when (string-prefix-p "ef-" (symbol-name theme))
+    (let* ((properties (ef-themes-get-color-value 'bg-red-subtle nil theme))
+           (metadata (ef-themes-get-color-value 'bg-magenta-subtle nil theme))
+           (spec '((class color) (min-colors 256)))
+           (faces
+            `(;; The :PROPERTIES: ... :END: drawer: the drawer delimiters, the
+              ;; :KEY: of each line, and the value after it -- three faces for
+              ;; one band.
+              (org-drawer ((,spec :inherit modus-themes-fixed-pitch
+                                  :background ,properties :extend t)))
+              (org-special-keyword ((,spec :inherit modus-themes-fixed-pitch
+                                           :background ,properties :extend t)))
+              (org-property-value ((,spec :inherit modus-themes-fixed-pitch
+                                          :background ,properties :extend t)))
+              ;; #+title:/#+subtitle:/#+author:/#+email:/#+date: -- org splits
+              ;; each of those into the keyword (org-document-info-keyword) and
+              ;; the value (org-document-title for the title,
+              ;; org-document-info for the rest). Only the keyword is listed
+              ;; here: leaving the two value faces alone is what keeps the
+              ;; title and the tag list themselves un-tinted, and it leaves
+              ;; them on the theme's own specs, so `org-document-title' keeps
+              ;; its 1.6 height with nothing to restate. No `:extend' either --
+              ;; the value follows on the same line, so there is no end-of-line
+              ;; for a background to run past.
+              (org-document-info-keyword ((,spec :inherit modus-themes-fixed-pitch
+                                                 :background ,metadata))))))
+      (apply #'custom-theme-set-faces theme faces)
+      (mapc (lambda (entry) (custom-theme-recalc-face (car entry))) faces))))
+
+(add-hook 'enable-theme-functions #'os-ef-themes-org-header-faces)
+
+;; org hands only five keywords to the document faces --
+;; `org-fontify-meta-lines-and-blocks-1' special-cases title/subtitle/author/
+;; email/date -- and drops every other `#+' line through to `org-meta-line'. So
+;; #+startup:, #+filetags:, #+options:, #+property:, #+category: and the rest of
+;; the in-buffer settings arrive as plain metadata. But `org-meta-line' is also
+;; every #+begin_src, #+end_src, #+RESULTS:, #+name: and #+caption: in the file,
+;; so tinting that face would paint half of a source-heavy note purple. The two
+;; groups have to be told apart by keyword, not by face.
+;;
+;; Rather than keep a hand-written list of the settings half, take org's own:
+;; `org-options-keywords' is precisely the set of keywords that configure a
+;; document, and it is what org uses for `pcomplete' on `#+'. Deriving from it
+;; means a keyword added by a future org version is picked up for free, and
+;; there is no second list here to drift out of sync. Only SUBTITLE: is added
+;; by hand -- org handles it in the special-case branch above, so it never
+;; needed to be in the completion list. (`org-options-keywords' is a defconst in
+;; org.el, which is loaded well before this point via org-roam.)
+(defconst os-org-document-keyword-regexp
+  (concat "^[ \t]*\\(#\\+"
+          (regexp-opt (cons "SUBTITLE:" org-options-keywords))
+          "\\)")
+  "Match a document-configuring `#+keyword:' and nothing else.
+Group 1 is the keyword together with its `#+' and its colon; the value
+after it is deliberately outside the group.  Built from
+`org-options-keywords', so it covers the in-buffer settings but not
+`#+begin_src', `#+results:' or the other content-level meta lines.")
+
+;; A matcher function rather than the regexp itself, purely to get
+;; case-insensitivity: org sets the CASE-FOLD slot of `font-lock-defaults' to
+;; nil, so a font-lock regexp is matched case-sensitively, and
+;; `org-options-keywords' is upper case while nobody writes `#+STARTUP:' that
+;; way. Binding `case-fold-search' around the search is the only place that can
+;; be fixed without either shouting in every org file or spelling out
+;; `[sS][tT][aA]...' by hand.
+(defun os-org-match-document-keyword (limit)
+  "Search for the next document keyword before LIMIT, ignoring case.
+A font-lock MATCHER for `os-org-document-keyword-regexp'."
+  (let ((case-fold-search t))
+    (re-search-forward os-org-document-keyword-regexp limit t)))
+
+;; `font-lock-add-keywords' appends after org's own keywords and the OVERRIDE
+;; flag is t, so this wins the keyword. Subexpression 1, not 0, keeps the tint
+;; off the value -- the same split org itself makes on `#+title:'.
+(font-lock-add-keywords
+ 'org-mode
+ '((os-org-match-document-keyword 1 'org-document-info-keyword t))
+ 'append)
+
+;; The active theme. This is the only place it is set: the Custom block at the
+;; end of this file used to carry `custom-enabled-themes', which runs later and
+;; would override whatever is loaded here (see the note there).
 (load-theme 'ef-elea-light :no-confirm)
 
 ;; --- Line numbers + current-line highlight ----------------------------------
@@ -586,7 +1165,8 @@
                  . ("/usr/bin/digestif"))))
 
 ;; --- LSP: everything else (lsp-mode) ----------------------------------------
-;; lsp-mode still drives Python (pylsp), Julia (JETLS) and R (languageserver).
+;; lsp-mode still drives Python (basedpyright), Julia (JETLS) and R
+;; (languageserver).
 ;; It and eglot cover disjoint major modes, so the two clients coexist without
 ;; fighting over a buffer. lsp-mode is autoloaded, but require it here so the
 ;; per-mode hooks and the JETLS client registration below have it loaded at
@@ -606,15 +1186,39 @@
 ;; `completion-at-point-functions', which is exactly what corfu consumes.
 (setq lsp-completion-provider :none)
 
-;; Snippet support needs yasnippet, which isn't installed; leaving this on just
-;; produces a warning on every connection and no snippets either way.
-(setq lsp-enable-snippet nil)
+;; Snippet-style completions (function signatures that expand with tab-stops):
+;; yasnippet is installed (see the Python IDE section), so let lsp-mode hand
+;; templates to it. This used to be nil, when yasnippet wasn't here.
+(setq lsp-enable-snippet t)
 
-;; Python: point pylsp at the dedicated `emacs-lsp' conda env so the server is
-;; found regardless of which project/conda env is active. (Installed with
-;; `conda create -n emacs-lsp -c conda-forge python-lsp-server'.)
-(setq lsp-pylsp-server-command
-      '("/home/simon/miniconda3/envs/emacs-lsp/bin/pylsp"))
+;; Diagnostics land in flymake (no flycheck installed; lsp-mode's :auto
+;; provider falls back to it). Its jump commands ship unbound, so give them
+;; the conventional M-n/M-p inside flymake buffers.
+(with-eval-after-load 'flymake
+  (keymap-set flymake-mode-map "M-n" #'flymake-goto-next-error)
+  (keymap-set flymake-mode-map "M-p" #'flymake-goto-prev-error))
+
+;; Python: basedpyright via the lsp-pyright package (which speaks for both
+;; pyright flavours -- `lsp-pyright-langserver-command' picks). This replaced
+;; (2026-08) pylsp from a dedicated conda env after conda disappeared from the
+;; machine: basedpyright is the community pyright fork that ships on PyPI with
+;; a bundled Node.js, so `uv tool install basedpyright' is the whole install
+;; (lands in ~/.local/bin, which exec-path-from-shell puts on Emacs' PATH).
+(setq lsp-pyright-langserver-command "basedpyright")
+;; One server per project, each seeing only its own virtualenv. Multi-root is
+;; lsp-pyright's default, but a shared server applies whichever venv it found
+;; first to every workspace folder -- wrong diagnostics everywhere else. Must
+;; be set before lsp-pyright loads; when flipping it on an existing install,
+;; delete ~/.emacs.d/.lsp-session-v1 or the recorded multi-root session wins.
+(setq lsp-pyright-multi-root nil)
+(require 'lsp-pyright)
+
+;; consult-lsp: lsp-mode's diagnostics/workspace-symbol pickers in the consult
+;; UI the rest of the minibuffer stack uses. Remaps (C-c l g e / C-c l g a
+;; reach them) rather than new bindings; the commands are autoloaded, so no
+;; require -- consult and consult-lsp load on first use.
+(define-key lsp-mode-map [remap lsp-treemacs-errors-list] #'consult-lsp-diagnostics)
+(define-key lsp-mode-map [remap xref-find-apropos] #'consult-lsp-symbols)
 
 ;; Julia: JETLS is not a bundled lsp-mode client, so register it by hand. It
 ;; speaks standard LSP over stdio; `jetls' lives in ~/.julia/bin (on PATH via
@@ -627,6 +1231,58 @@
     :major-modes '(julia-mode)
     :language-id "julia"
     :server-id 'jetls)))
+
+;; julia-repl: interactive REPL for Julia, the counterpart of what ESS provides
+;; for R. JETLS covers the static side (diagnostics, completion, docs) but has
+;; no way to *run* code; julia-repl adds send-to-REPL (C-c C-c and friends) on
+;; top of a live `julia' session. Chosen over julia-snail deliberately: snail
+;; ships its own completion/xref backends fed by the running session, which
+;; would compete with lsp-mode's -- the single-completion-source rule that
+;; `lsp-completion-provider :none' enforces elsewhere. julia-repl just pastes
+;; into a terminal, so it cannot conflict with the LSP stack. The minor mode is
+;; autoloaded, so no require here; the backend is set once julia-repl actually
+;; loads (first Julia buffer). vterm as the terminal backend matches the vterm
+;; already installed for general use. Note `julia-repl-set-terminal-backend'
+;; itself does (require 'vterm), so opening the first Julia buffer loads vterm
+;; -- still off the startup path, which is all the vterm rule above demands.
+(add-hook 'julia-mode-hook #'julia-repl-mode)
+(with-eval-after-load 'julia-repl
+  (julia-repl-set-terminal-backend 'vterm))
+
+;; Format-on-save with Runic, routed through JETLS rather than run directly.
+;; JETLS already defaults to Runic (`formatter = "Runic"' in its DEFAULT_CONFIG)
+;; and serves textDocument/formatting by shelling out to a `runic' executable --
+;; installed with `julia -e "using Pkg; Pkg.Apps.add(\"Runic\")"', which lands it
+;; in ~/.julia/bin next to jetls and so on the same juliaup-provided PATH. The
+;; LSP client is therefore already a Runic client, and all that is missing here
+;; is the save hook.
+;;
+;; Deliberately NOT a second `reformatter-define' like Air below: R's
+;; languageserver knows nothing about Air, so there is no LSP path to route
+;; through and reformatter is the only option there. Here there is one, and
+;; adding a direct `runic' route beside it would put two formatters over the same
+;; buffer -- the same single-source rule that keeps completion on one backend.
+;;
+;; Guarded twice over, so nothing here can block a save: `lsp-feature?' (an alias
+;; for `lsp--find-workspaces-for') returns nil in any buffer with no server
+;; attached, which covers scratch .jl files outside a project, and
+;; `executable-find' covers machines where Runic was never installed -- both
+;; degrade to no formatting rather than an error, matching the Air guard below.
+;; Note this shares the JETLS process with analysis, so a save landing inside a
+;; full-analysis window waits for that to finish.
+(defun my-julia-runic-format ()
+  "Format the current Julia buffer with Runic, via JETLS.
+No-op unless a server offering formatting is attached and `runic'
+is installed, so a save never fails on a missing piece."
+  (when (and (lsp-feature? "textDocument/formatting")
+             (executable-find "runic"))
+    (lsp-format-buffer)))
+
+(defun my-julia-enable-runic ()
+  "Format Julia buffers with Runic on save."
+  (add-hook 'before-save-hook #'my-julia-runic-format nil t))
+
+(add-hook 'julia-mode-hook #'my-julia-enable-runic)
 
 ;; The ChkTeX settings that used to live here were texlab-specific (it is texlab
 ;; that shells out to ChkTeX; digestif does not), so they went with it. digestif
@@ -653,6 +1309,78 @@
                 julia-mode-hook
                 ess-r-mode-hook))
   (add-hook hook #'lsp-deferred))
+
+;; --- LSP inside Org src-block edit buffers ------------------------------------
+;; C-c ' (org-edit-special) edits a block in an *Org Src* buffer that visits no
+;; file. The mode hooks above do run there, but lsp-mode refuses fileless
+;; buffers -- a server needs a file URI and a project root -- so LSP never
+;; attaches in those buffers. Org's escape hatch is `org-babel-edit-prep:LANG',
+;; called with the block's babel info once the edit buffer is fully set up:
+;; give the buffer a file name there, then start lsp. The name is the block's
+;; :tangle target when it names a file; otherwise a phantom "<file>.org.<ext>"
+;; beside the org file, which roots the server in the org file's directory.
+;; Nothing ever writes to that path: C-c ' and C-x C-s in a src buffer go
+;; through org-src's `write-contents-functions' (which writes back to the org
+;; buffer and returns non-nil, short-circuiting a real save), and
+;; `org-edit-src-exit' clears the modified flag before killing the buffer, so
+;; the phantom name never triggers save/kill prompts.
+(defun my-org-src-lsp (info ext)
+  "Give the current org-src edit buffer a file name and start lsp.
+INFO is the babel info passed to `org-babel-edit-prep:LANG'; EXT is
+the file extension for the block's language."
+  (let* ((tangle (cdr (assq :tangle (nth 2 info))))
+         (org-file (buffer-file-name (org-src-source-buffer))))
+    (setq-local buffer-file-name
+                (cond ((and tangle (not (member tangle '("no" "yes"))))
+                       (expand-file-name
+                        tangle (and org-file (file-name-directory org-file))))
+                      (org-file (concat org-file "." ext))
+                      (t (expand-file-name (concat "org-src-scratch." ext)
+                                           temporary-file-directory))))
+    (lsp-deferred)))
+
+(defun org-babel-edit-prep:python (info) (my-org-src-lsp info "py"))
+(defun org-babel-edit-prep:julia  (info) (my-org-src-lsp info "jl"))
+(defun org-babel-edit-prep:R      (info) (my-org-src-lsp info "R"))
+
+;; --- Python IDE (snippets + debugging + environments) ------------------------
+;; The rest of the Python stack, after the LSP half above. Modelled on
+;; https://blog.serghei.pl/posts/emacs-python-ide/ but adapted to this
+;; config's choices: corfu instead of the post's company (snippets join
+;; completion through a capf, not a company backend), and uv instead of its
+;; pyenv -- projects are created/synced with `uv init' / `uv sync', which puts
+;; the virtualenv in .venv/ where lsp-pyright finds it unaided. direnv+envrc
+;; (end of file) layer per-project env vars on top when an .envrc exists.
+;;
+;; yasnippet: the template engine. Loaded eagerly because `lsp-enable-snippet'
+;; above needs it in any LSP buffer (it expands completion templates for
+;; Julia/R too, not just Python). yasnippet-snippets is the community snippet
+;; library; `yas-reload-all' builds the tables once, and yas-minor-mode is
+;; then enabled per prog-mode buffer rather than globally, which keeps TAB in
+;; org/text buffers untouched.
+(require 'yasnippet)
+(require 'yasnippet-snippets)
+(yas-reload-all)
+(add-hook 'prog-mode-hook #'yas-minor-mode)
+
+;; Per-buffer Python setup. dap-mode is required here, not at startup: it
+;; drags in treemacs and friends, which sessions that never open Python
+;; shouldn't pay for. debugpy is the debug server and must be importable by
+;; the interpreter that runs the code -- `uv add --dev debugpy' per project.
+;; Templates offered by `dap-debug' include "Python :: Run file (buffer)" and
+;; pytest variants; breakpoints via `dap-breakpoint-toggle'.
+(defun my-python-ide-setup ()
+  "Snippet completion and DAP debugging for Python buffers."
+  ;; Offer snippets as completion candidates next to the LSP's: corfu reads
+  ;; capfs, so yasnippet needs a capf shim (the post's company-yasnippet
+  ;; backend translated to this stack).
+  (add-hook 'completion-at-point-functions #'yasnippet-capf nil t)
+  (require 'dap-python)
+  (setq dap-python-debugger 'debugpy)
+  (dap-auto-configure-mode 1))
+
+(add-hook 'python-mode-hook #'my-python-ide-setup)
+(add-hook 'python-ts-mode-hook #'my-python-ide-setup)
 
 ;; --- R (ESS + Air + Quarto) --------------------------------------------------
 ;; ESS is the R IDE core: `ess-r-mode' for source files, an inferior R
@@ -778,13 +1506,22 @@ of erroring on every save."
                              (if (memq 'attach (mu4e-message-field msg :flags))
                                  (nerd-icons-faicon "nf-fa-paperclip")
                                " "))))
-  ;; The default field list with :attach slotted in after the flags.
+  ;; The default field list with :attach slotted in after the flags, and
+  ;; :from-or-to in place of :from. In Sent/Drafts every message is from
+  ;; oneself, so a From column is a wall of one's own name; :from-or-to shows
+  ;; the To: address instead whenever From: matches `mu4e-personal-address-p'
+  ;; -- i.e. one of the addresses recorded in the mu store by
+  ;; `mu init --my-address=...' (check with `mu info store'); mu4e-vars.el
+  ;; states plainly that the check is the store's list, not `user-mail-address',
+  ;; so adding an alias means re-running `mu init'/`mu index', not a setq here.
+  ;; Those rows get the "To " prefix from `mu4e-headers-from-or-to-prefix',
+  ;; which costs 3 columns, hence 25 rather than the stock 22.
   (setq mu4e-headers-fields
         '((:human-date . 12)
           (:flags . 6)
           (:attach . 2)
           (:mailing-list . 10)
-          (:from . 22)
+          (:from-or-to . 25)
           (:subject))))
 
 ;; Calendar invites -> org agenda. gnus-icalendar (built-in; it is what
@@ -813,17 +1550,18 @@ of erroring on every save."
   ;; the Export-to-Org row silently doesn't.
   (require 'org-agenda)
   (setq gnus-icalendar-org-capture-file
-        "~/org-mode/agenda/imports/invites.org")
+        "~/org-mode/agenda/invites.org")
   (setq gnus-icalendar-org-capture-headline '("Invitations"))
   (gnus-icalendar-org-setup)
   ;; Duplicate-protection depends on the capture file being findable: the
   ;; export button looks the event's UID up in `org-agenda-files' and only
   ;; offers "Update Org Entry" when found. The org repo's org-config.el sets
-  ;; org-agenda-files, but only in sessions that loaded it -- in a mail-only
-  ;; session the variable is empty, every press appends a fresh duplicate,
-  ;; and the button never changes label. Registering the capture file here
-  ;; keeps lookups working everywhere; when org-config.el loads it rebuilds
-  ;; the list wholesale and picks this file up again via its agenda/ scan.
+  ;; org-agenda-files (loaded at startup by the Calendar section above when
+  ;; the repo exists), but on a machine without the repo the variable would
+  ;; be empty, every press would append a fresh duplicate, and the button
+  ;; would never change label. Registering the capture file here keeps
+  ;; lookups working regardless; when org-config.el loads it rebuilds the
+  ;; list wholesale and picks this file up again via its agenda/ scan.
   (add-to-list 'org-agenda-files gnus-icalendar-org-capture-file)
   ;; The capture template is :immediate-finish -- a successful export shows
   ;; nothing at all, which reads as a dead button. Say what happened.
@@ -1120,18 +1858,92 @@ above for why let-binding `shr-base' (what upstream does) cannot work."
 (with-eval-after-load 'smudge-api
   (advice-add 'smudge-api-oauth2-auth :around #'smudge--auth-bounded))
 
+;; --- direnv (envrc) ----------------------------------------------------------
+;; Buffer-local direnv integration: a buffer inside a project with an allowed
+;; .envrc gets that project's environment (PATH, VIRTUAL_ENV, ...) without
+;; leaking it anywhere else, so two projects with different venvs can be open
+;; at once and each LSP/flymake/compile sees its own tools. Guarded on the
+;; binary like Air: machines without direnv (`sudo dnf install direnv') no-op.
+;; Deliberately the LAST global mode in this file -- envrc's README asks for
+;; that, because each global minor mode prepends itself to find-file hooks and
+;; envrc must run before the others to have the environment in place.
+(when (executable-find "direnv")
+  (envrc-global-mode 1))
+
 (custom-set-variables
  ;; custom-set-variables was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
+ '(custom-enabled-themes '(leuven))
  '(custom-safe-themes
-   '("088cd6f894494ac3d4ff67b794467c2aa1e3713453805b93a8bcb2d72a0d1b53"
+   '("df6dfd55673f40364b1970440f0b0cb8ba7149282cf415b81aaad2d98b0f0290"
+     "f76e34f676ac1fbce608c5f38033c35e370509619b9a3acd02a518ef58b01107"
+     "b7a09eb77a1e9b98cafba8ef1bd58871f91958538f6671b22976ea38c2580755"
+     "f1e8339b04aef8f145dd4782d03499d9d716fdc0361319411ac2efc603249326"
+     "acd363510d3e4b638db178783bde3d4492574c0f5c889f845251949f43567d16"
+     "d97ac0baa0b67be4f7523795621ea5096939a47e8b46378f79e78846e0e4ad3d"
+     "7fea145741b3ca719ae45e6533ad1f49b2a43bf199d9afaee5b6135fd9e6f9b8"
+     "088cd6f894494ac3d4ff67b794467c2aa1e3713453805b93a8bcb2d72a0d1b53"
      "0f1341c0096825b1e5d8f2ed90996025a0d013a0978677956a9e61408fcd2c77"
      "4594d6b9753691142f02e67b8eb0fda7d12f6cc9f1299a49b819312d6addad1d"
      default))
+ '(org-agenda-files
+   '("/home/simon/org-mode/agenda/invites.org"
+     "/home/simon/org-mode/agenda/index.org"
+     "/home/simon/org-mode/agenda/routines.org"
+     "/home/simon/org-mode/agenda/workload.org"
+     "/home/simon/org-mode/areas/career/goals.org"
+     "/home/simon/org-mode/areas/career/index.org"
+     "/home/simon/org-mode/areas/career/positioning_choices.org"
+     "/home/simon/org-mode/areas/development/index.org"
+     "/home/simon/org-mode/areas/outreach/index.org"
+     "/home/simon/org-mode/areas/research/conferences/2026_season.org"
+     "/home/simon/org-mode/areas/research/funding/opportunities/digest/20260124.org"
+     "/home/simon/org-mode/areas/research/funding/opportunities/brazil_uk.org"
+     "/home/simon/org-mode/areas/research/funding/opportunities/esrc_grants.org"
+     "/home/simon/org-mode/areas/research/funding/opportunities/esrc_secondarydata.org"
+     "/home/simon/org-mode/areas/research/funding/opportunities/isambard_gateway.org"
+     "/home/simon/org-mode/areas/research/funding/opportunities/isambard_rapid.org"
+     "/home/simon/org-mode/areas/research/funding/opportunities/lt.org"
+     "/home/simon/org-mode/areas/research/funding/opportunities/metascience.org"
+     "/home/simon/org-mode/areas/research/funding/opportunities/p2r.org"
+     "/home/simon/org-mode/areas/research/funding/opportunities/switzerland.org"
+     "/home/simon/org-mode/areas/research/funding/index.org"
+     "/home/simon/org-mode/areas/research/streams/index.org"
+     "/home/simon/org-mode/areas/research/streams/labor_division.org"
+     "/home/simon/org-mode/areas/research/streams/language_and_organizing.org"
+     "/home/simon/org-mode/areas/research/streams/methods.org"
+     "/home/simon/org-mode/areas/research/index.org"
+     "/home/simon/org-mode/areas/supervision/alfredo.org"
+     "/home/simon/org-mode/areas/supervision/ben.org"
+     "/home/simon/org-mode/areas/supervision/derek.org"
+     "/home/simon/org-mode/areas/supervision/index.org"
+     "/home/simon/org-mode/areas/supervision/joseph.org"
+     "/home/simon/org-mode/areas/supervision/kabir.org"
+     "/home/simon/org-mode/areas/supervision/matteo.org"
+     "/home/simon/org-mode/travel/index.org"))
+ '(package-selected-packages
+   '(all-the-icons all-the-icons-dired cape casual citar citar-org-roam
+		   claude-code-ide compat consult consult-lsp corfu
+		   csv-mode dap-mode darkroom diff-hl dired-sidebar
+		   doom-modeline doom-themes ef-themes eldoc-box
+		   emacs-codex-ide emacs-zulip embark embark-consult
+		   envrc ess exec-path-from-shell
+		   gnu-elpa-keyring-update insert-uuid julia-mode
+		   lsp-mode lsp-pyright magit marginalia markdown-mode
+		   markdown-toc mermaid-mode minions nerd-icons
+		   ob-mermaid olivetti orderless org-roam
+		   org-roam-bibtex org-roam-ql org-roam-ui org-sidebar
+		   pdf-tools quarto-mode rainbow-csv
+		   rainbow-delimiters reformatter smudge
+		   solarized-theme sqlite3 vertico vterm
+		   writeroom-mode yasnippet yasnippet-capf
+		   yasnippet-snippets))
  '(package-vc-selected-packages
-   '((emacs-zulip :vc-backend Git :url
+   '((insert-uuid :vc-backend Git :url
+		  "https://github.com/theesfeld/insert-uuid")
+     (emacs-zulip :vc-backend Git :url
 		  "https://github.com/suky57/emacs-zulip")
      (rainbow-csv :vc-backend Git :url
 		  "https://github.com/emacs-vs/rainbow-csv")
@@ -1139,7 +1951,11 @@ above for why let-binding `shr-base' (what upstream does) cannot work."
 		      "https://github.com/dgillis/emacs-codex-ide")
      (claude-code-ide :vc-backend Git :url
 		      "https://github.com/manzaltu/claude-code-ide.el")))
- '(safe-local-variable-directories '("/home/simon/org-mode/")))
+ '(safe-local-variable-directories '("/home/simon/org-mode/"))
+ '(safe-local-variable-values
+   '((org-use-property-inheritance . t) (org-log-into-drawer . "LOGBOOK")
+     (org-log-done . time) (org-startup-indented . t)
+     (org-startup-folded . content))))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.

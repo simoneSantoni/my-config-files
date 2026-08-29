@@ -1,19 +1,11 @@
 # =============================================================================
 #                                   PATH
 # =============================================================================
-
-export PATH=$HOME/bin:$HOME/.local/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:$PATH
-
-# Tool-specific paths
-path=(
-    '/home/simon/.juliaup/bin'
-    '/home/simon/.julia/bin'
-    '/home/simon/opt/thunderbird/bin'
-    '/home/simon/opt/zotero/bin'
-    '/home/simon/opt/nvim-linux-x86_64/bin'
-    $path
-)
-export PATH
+#
+# PATH now lives in ~/.zshenv, which zsh sources on *every* invocation — see
+# the comment there. Keeping it out of .zshrc is what lets Emacs'
+# exec-path-from-shell read PATH from a cheap non-interactive `zsh -c' instead
+# of an interactive login shell that first loads oh-my-zsh, zinit and nvm.
 
 # =============================================================================
 #                               OH MY ZSH
@@ -88,4 +80,9 @@ fi
 #                                STARTUP
 # =============================================================================
 
-fastfetch
+# Use a host-specific fastfetch logo when one exists (e.g. stellaris16.txt)
+if [[ -f ~/.config/fastfetch/$HOST.txt ]]; then
+  fastfetch --logo ~/.config/fastfetch/$HOST.txt
+else
+  fastfetch
+fi

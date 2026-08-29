@@ -1,0 +1,46 @@
+# Ghostty configuration.
+#
+# Ghostty reads this file at $XDG_CONFIG_HOME/ghostty/config.ghostty, and custom
+# themes from the `themes/` directory beside it -- so this whole directory is
+# symlinked into place by scripts/link-configs.sh, and `theme` below resolves to
+# themes/ef-elea-light in this repo rather than a built-in of the same name.
+#
+# Reload without restarting: <C-S-,> (or `ghostty +validate-config` to check
+# syntax first).
+
+# --- Appearance -------------------------------------------------------------
+# ef-elea-light matches the Emacs theme (`ef-themes-to-toggle` in emacs/init.el)
+# and the Midnight Commander skin, so a terminal Emacs inside Ghostty sits on an
+# identical background.
+theme = ef-elea-light
+
+# JuliaMono Nerd Font Mono at 13pt, the same face and size as Emacs
+# (`:height 130`), which keeps GUI and terminal Emacs visually identical.
+font-family = JuliaMono Nerd Font Mono
+font-size = 13
+
+window-padding-x = 8
+window-padding-y = 8
+window-padding-balance = true
+
+cursor-style = block
+cursor-style-blink = false
+mouse-hide-while-typing = true
+
+# --- Behaviour --------------------------------------------------------------
+# vim-slime and the Emacs/Quarto REPL workflow print a lot; the default 10MB of
+# scrollback is worth raising for long R/Julia sessions.
+scrollback-limit = 100000000
+
+copy-on-select = clipboard
+confirm-close-surface = false
+
+# Pinned to zsh rather than `detect`, since zsh is the login shell and detection
+# is skipped entirely when the shell is named. `sudo` is the one non-default
+# feature here: it keeps the integration working across `sudo -E`.
+#
+# Ghostty advertises `TERM=xterm-ghostty`, whose terminfo entry does not exist on
+# remote hosts. If ssh sessions start rendering wrong, add `ssh-terminfo` here to
+# have Ghostty install the entry on the remote, or set `term = xterm-256color`.
+shell-integration = zsh
+shell-integration-features = cursor,sudo,title

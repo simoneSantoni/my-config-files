@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Read(//home/simon/.local/share/konsole/**)",
-      "Read(//home/simon/.config/**)"
+      "Read(//home/simon/.config/**)",
+      "Bash(lsusb)"
     ]
   }
 }
