@@ -23,6 +23,12 @@
 ;; stealing the window on every install.
 (setq native-comp-async-report-warnings-errors 'silent)
 
+;; This org-roam-ui release triggers false undefined-function diagnostics for
+;; its obsolete aliases and optional ORB integration during native compilation.
+;; Keep its byte-compiled implementation; other packages still compile normally.
+(with-eval-after-load 'comp-run
+  (add-to-list 'native-comp-jit-compilation-deny-list "org-roam-ui\\.el\\'"))
+
 ;; Package archives: add MELPA alongside the default GNU/NonGNU ELPA.
 (require 'package)
 (add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/") t)
@@ -103,6 +109,7 @@
                            rainbow-delimiters
                            sqlite3
                            org-roam
+                           org-download
                            org-roam-ql
                            org-roam-bibtex
                            org-roam-ui
@@ -130,7 +137,11 @@
                 '(gnu-elpa-keyring-update
                   claude-code-ide emacs-codex-ide rainbow-csv emacs-zulip
                   dired-sidebar org-sidebar all-the-icons-dired
-                  insert-uuid))))
+                  insert-uuid mathpix))))
+
+;; Mathpix is installed from upstream Git, alongside the archive packages above.
+(unless (package-installed-p 'mathpix)
+  (package-vc-install '(mathpix :url "https://github.com/jethrokuan/mathpix.el")))
 
 ;; claude-code-ide isn't published to GNU/NonGNU ELPA or MELPA, so it can't be
 ;; installed with `package-install'. Pull it straight from its Git repository
@@ -333,6 +344,11 @@
 (setq org-roam-node-display-template
       (concat "${title:*} " (propertize "${tags:20}" 'face 'org-tag)))
 (require 'org-roam)
+;; Bundled modules: protocol capture, Graphviz graphs, daily notes, and ID-aware HTML export.
+(require 'org-roam-protocol)
+(require 'org-roam-graph)
+(require 'org-roam-dailies)
+(require 'org-roam-export)
 ;; `org-roam-directory' must exist before the database syncs against it.
 (make-directory org-roam-directory t)
 ;; Keep the index live as notes are edited, rather than needing M-x org-roam-db-sync.
@@ -342,6 +358,19 @@
 (global-set-key (kbd "C-c n i") #'org-roam-node-insert)
 (global-set-key (kbd "C-c n c") #'org-roam-capture)
 (global-set-key (kbd "C-c n l") #'org-roam-buffer-toggle)
+;; Images and equation OCR. Keep downloaded images in Org's attachment store.
+(require 'org-download)
+(setq org-download-method 'attach)
+(add-hook 'dired-mode-hook #'org-download-enable)
+(require 'mathpix)
+;; Credentials stay outside the versioned configuration.
+(setq mathpix-app-id (or (getenv "MATHPIX_APP_ID") mathpix-app-id)
+      mathpix-app-key (or (getenv "MATHPIX_APP_KEY") mathpix-app-key))
+;; KDE's region selector is available on this desktop.
+(when (executable-find "spectacle")
+  (setq org-download-screenshot-method "spectacle -b -r -n -o %s"
+        mathpix-screenshot-method "spectacle -b -r -n -o %s"))
+
 ;; Org sidebars: task overview and navigable outline tree, respectively.
 (global-set-key (kbd "C-c n s") #'org-sidebar-toggle)
 (global-set-key (kbd "C-c n t") #'org-sidebar-tree-toggle)

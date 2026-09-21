@@ -67,12 +67,24 @@ disjoint major modes by design.)
 | Package | Purpose |
 |---------|---------|
 | `org-roam` | Zettelkasten over `~/org-mode`; `C-c n` prefix |
+| `org-roam-protocol` | Bundled module for Org-roam capture through Org protocol links |
+| `org-roam-graph` | Bundled static graph generator; requires Graphviz's `dot` executable |
+| `org-roam-dailies` | Bundled daily-note capture and navigation commands |
+| `org-roam-export` | Bundled HTML-export support for Org-roam ID links |
+| `org-download` | MELPA package for image downloads, drag-and-drop, and screenshots; uses Org attachments |
+| `mathpix` | Installed from [upstream Git](https://github.com/jethrokuan/mathpix.el); screenshot-to-LaTeX OCR |
 | `sqlite3` | Dynamic SQLite module backing org-roam's database (this Emacs build lacks `--with-sqlite3`) |
 | `citar` | Completion UI over `~/org-mode/bibliography.bib`; drives org-cite's insert/follow/activate processors (`C-c C-x @`) |
 | `citar-org-roam` | Makes org-roam nodes citar's note store — a reference note is a node with the citekey in `ROAM_REFS` (`C-c n r`) |
 | `org-roam-bibtex` | Citekey-keyed capture templates and attachment handling; `orb-insert-link` on `C-c n b` |
-| `org-roam-ui` | Node graph served to the browser (`C-c n g`) |
+| `org-roam-ui` | Node graph served to the browser (`C-c n g`); excluded from deferred native compilation to avoid upstream alias warnings |
 | `org-roam-ql` | Query language over the node database (`C-c n q`) |
+
+Use `M-x org-download-yank` for an image URL, `M-x org-download-screenshot`
+for a region capture, or `M-x mathpix-screenshot` for equation OCR. Both screenshot
+commands use KDE Spectacle when available. Mathpix sends the selected image to its
+API; set `MATHPIX_APP_ID` and `MATHPIX_APP_KEY` before starting Emacs, or configure
+`mathpix-app-id` and `mathpix-app-key` privately. Credentials are not stored here.
 
 **Git**
 
