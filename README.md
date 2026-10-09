@@ -26,6 +26,8 @@ Dotfiles for a Linux desktop environment running i3 window manager with Ubuntu Y
 │   └── themes/        Custom themes (ef-elea-light)
 ├── mc/                Midnight Commander configuration
 │   └── skins/         True-colour skins
+├── kde/               KDE Plasma tweaks
+│   └── aurorae/       Besot Haiku decoration patch (gray titlebar, accent buttons)
 ├── emacs/             GNU Emacs configuration
 │   └── init.el        Single-file config (package.el + MELPA)
 ├── hhkb/              HHKB Studio keyboard keymap profiles
@@ -71,6 +73,12 @@ System information display run on shell startup via `.zshrc`. Shows OS, kernel, 
 
 True-colour `ef-elea-light` skin matching the Emacs theme. See
 [`mc/README.md`](mc/README.md) for requirements, preview, and activation.
+
+### KDE Plasma (`kde/`)
+
+`aurorae/patch-besot-haiku.py` recolours the Besot Haiku window decoration:
+gray titlebar for active and inactive windows, active buttons in the Plasma
+accent colour. Re-run after each theme upgrade. See [`kde/README.md`](kde/README.md).
 
 ### Emacs (`emacs/`)
 

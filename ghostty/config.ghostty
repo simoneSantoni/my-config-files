@@ -14,10 +14,10 @@
 # identical background.
 theme = ef-elea-light
 
-# JuliaMono Nerd Font Mono at 13pt, the same face and size as Emacs
+# JuliaMono Nerd Font Mono at 12pt, the same face and size as Emacs
 # (`:height 130`), which keeps GUI and terminal Emacs visually identical.
 font-family = JuliaMono Nerd Font Mono
-font-size = 13
+font-size = 12
 
 window-padding-x = 8
 window-padding-y = 8
