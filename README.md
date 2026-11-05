@@ -23,7 +23,7 @@ Dotfiles for a Linux desktop environment running i3 window manager with Ubuntu Y
 │   └── config.jsonc
 ├── ghostty/           Ghostty terminal emulator
 │   ├── config.ghostty
-│   └── themes/        Custom themes (ef-elea-light)
+│   └── themes/        Custom themes (ef-elea-light, leuven-dark, leuven)
 ├── mc/                Midnight Commander configuration
 │   └── skins/         True-colour skins
 ├── kde/               KDE Plasma tweaks
@@ -34,6 +34,7 @@ Dotfiles for a Linux desktop environment running i3 window manager with Ubuntu Y
 │   ├── current-profile-{0..3}.toml   Live profile dumps
 │   ├── profile-backup.toml           Factory/known-good restore point
 │   └── profile-{0..3}-decoded.txt    Human-readable layout renders
+├── COLORS.md          leuven-dark colour reference (Emacs, Ghostty, VS Code)
 └── zsh/
     ├── .zshenv        PATH only — sourced by every zsh invocation
     └── .zshrc         ZSH shell configuration
@@ -71,7 +72,7 @@ System information display run on shell startup via `.zshrc`. Shows OS, kernel, 
 
 ### Midnight Commander (`mc/`)
 
-True-colour `ef-elea-light` skin matching the Emacs theme. See
+True-colour `ef-elea-light` skin, matching Emacs' previous theme. See
 [`mc/README.md`](mc/README.md) for requirements, preview, and activation.
 
 ### KDE Plasma (`kde/`)
@@ -87,7 +88,8 @@ PDF viewing, an in-editor terminal, and Claude Code integration. See
 [`emacs/README.md`](emacs/README.md) for the full package list and dependencies.
 
 - **Packages**: markdown-mode, markdown-toc, vterm, claude-code-ide, pdf-tools, doom-modeline, minions, nerd-icons, ef-themes, exec-path-from-shell
-- **Theme**: ef-themes (`ef-light` default), JuliaMono Nerd Font Mono
+- **Theme**: `ef-elea-light`, with `leuven-dark` (overrides documented in
+  [`COLORS.md`](COLORS.md)) set up as the alternative; JuliaMono Nerd Font Mono
 - **Build deps**: cmake + libtool (vterm), poppler + glib headers (pdf-tools)
 
 ### Ghostty (`ghostty/`)
@@ -96,9 +98,14 @@ GPU-accelerated terminal emulator (Fedora: `dnf copr enable scottames/ghostty`).
 The whole directory is symlinked to `~/.config/ghostty`, because Ghostty resolves
 custom themes from a `themes/` directory beside the config file.
 
-- **Theme**: `ef-elea-light`, a port of the Emacs ef-themes palette to Ghostty's
-  16 ANSI slots (`themes/ef-elea-light`) — same palette as `mc/skins/ef-elea-light.ini`
-- **Font**: JuliaMono Nerd Font Mono 13pt, matching `emacs/init.el`
+- **Theme**: `julia-leuven-light-green`, matching Emacs' pale green background
+  (`#f1f8f0`). `julia-leuven-light` (white) and `julia-leuven-dark` (charcoal)
+  are the other Julia variants in `ghostty/themes/`. Their ANSI palettes follow
+  the Emacs accent swaps; red slots render blue, green slots red, blue slots
+  green. Purple supplies the cursor and magenta/yellow slots. Previous
+  `ef-elea-light`, `leuven` and `leuven-dark` themes remain available.
+  Change `theme` in `ghostty/config.ghostty` to select a variant.
+- **Font**: JuliaMono Nerd Font Mono 12pt (Emacs uses 13pt)
 - **Reload**: `<C-S-,>` in a running Ghostty; `ghostty +validate-config` to check syntax
 
 ### HHKB Studio (`hhkb/`)
@@ -146,7 +153,7 @@ generated packages and caches alongside it.
 
 ## Theme
 
-Two color schemes are in use, split by application:
+Three color schemes are in use, split by application:
 
 **Ubuntu Yaru** (dark) — Neovim, NeoMutt, Neovide:
 
@@ -156,6 +163,22 @@ Two color schemes are in use, split by application:
 | Foreground | `#F6F5F4` / `#eeeeec`          |
 | Accent     | `#E95420` (Ubuntu orange)      |
 | Font       | UbuntuMono / FiraCode Nerd Font |
+
+**leuven-dark** (dark) — VS Code (and the alternative Emacs and Ghostty theme):
+
+| Element    | Value                          |
+|------------|--------------------------------|
+| Background | `#25202a`                      |
+| Foreground | `#cfccd2`                      |
+| Accent     | `#43cd80` (SeaGreen3 cursor; Ghostty still `#e1420b`) |
+| Font       | JuliaMono Nerd Font Mono       |
+
+Ships with GNU Emacs (`etc/themes/leuven-dark-theme.el`), restyled in
+`emacs/init.el`. The Ghostty theme (`ghostty/themes/leuven-dark`) and the VS
+Code theme (`~/leuven-for-vscode`, a separate repo) are ports of the result.
+**[`COLORS.md`](COLORS.md)** is the full reference: palette, syntax, Org,
+interface, status and terminal colours, with contrast ratios, the design rules
+behind the overrides, and the checklist for changing a colour.
 
 **ef-elea-light** (light) — Emacs, Midnight Commander, Ghostty:
 
@@ -167,7 +190,7 @@ Two color schemes are in use, split by application:
 | Font       | JuliaMono Nerd Font Mono       |
 
 Ported from [ef-themes](https://github.com/protesilaos/ef-themes) 2.2.0. When
-changing one of the three, keep `mc/skins/ef-elea-light.ini` and
+changing either, keep `mc/skins/ef-elea-light.ini` and
 `ghostty/themes/ef-elea-light` in sync — both derive from the same palette.
 
 ## Dependencies

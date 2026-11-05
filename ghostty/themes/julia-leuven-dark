@@ -1,0 +1,29 @@
+# julia-leuven-dark: companion to Emacs' locally maintained julia-leuven theme.
+# Same background, foreground, purple cursor and green selection tint.
+# Julia logo anchors: blue 4063d8, green 389826, red cb3c33, purple 9558b2.
+# ANSI slots preserve the Emacs accent swaps: 1/9 blue, 2/10 red,
+# 4/12 green; 3/11 and 5/13 purple, 6/14 green variations.
+# Light variants darken bright accents for legibility; dark lifts them.
+background = #1e2028
+foreground = #e3e4ec
+cursor-color = #ce9de5
+cursor-text = #1e2028
+selection-background = #2d3833
+selection-foreground = #e3e4ec
+
+palette = 0=#292d39
+palette = 1=#96adff
+palette = 2=#ff968c
+palette = 3=#ce9de5
+palette = 4=#8bd17c
+palette = 5=#ce9de5
+palette = 6=#8bd17c
+palette = 7=#e3e4ec
+palette = 8=#a1a5b6
+palette = 9=#b8c7ff
+palette = 10=#ffb7af
+palette = 11=#e2bff1
+palette = 12=#afe49f
+palette = 13=#dcb3ee
+palette = 14=#a4dca2
+palette = 15=#ffffff

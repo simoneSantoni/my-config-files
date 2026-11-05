@@ -3,16 +3,15 @@
 # Ghostty reads this file at $XDG_CONFIG_HOME/ghostty/config.ghostty, and custom
 # themes from the `themes/` directory beside it -- so this whole directory is
 # symlinked into place by scripts/link-configs.sh, and `theme` below resolves to
-# themes/ef-elea-light in this repo rather than a built-in of the same name.
+# themes/julia-leuven-light-green in this repo rather than a built-in of the same name.
 #
 # Reload without restarting: <C-S-,> (or `ghostty +validate-config` to check
 # syntax first).
 
 # --- Appearance -------------------------------------------------------------
-# ef-elea-light matches the Emacs theme (`ef-themes-to-toggle` in emacs/init.el)
-# and the Midnight Commander skin, so a terminal Emacs inside Ghostty sits on an
-# identical background.
-theme = ef-elea-light
+# Match Emacs' Julia Leuven green paper.  Alternatives are julia-leuven-light
+# (white) and julia-leuven-dark (charcoal); all three live in themes/.
+theme = julia-leuven-light-green
 
 # JuliaMono Nerd Font Mono at 12pt, the same face and size as Emacs
 # (`:height 130`), which keeps GUI and terminal Emacs visually identical.

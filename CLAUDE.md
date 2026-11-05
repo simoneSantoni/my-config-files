@@ -63,6 +63,20 @@ before changing any color.
 - Accent: `#E95420` (Ubuntu orange)
 - Font: UbuntuMono Nerd Font / FiraCode Nerd Font
 
+**leuven-dark** (dark) — VS Code (`~/leuven-for-vscode`, outside this repo), and the alternative emacs and ghostty theme:
+- Background: `#25202a`
+- Foreground: `#cfccd2`
+- Accent: `#43cd80` (SeaGreen3 cursor; Ghostty still has the shipped `#e1420b`)
+- Font: JuliaMono Nerd Font Mono
+- Source of truth: the `os-leuven-dark-*` functions in `emacs/init.el`, on top
+  of `leuven-dark-theme.el` bundled with Emacs (`etc/themes/`). Ghostty and VS
+  Code are ports of what Emacs shows. **`COLORS.md` is the full reference**:
+  read its design rules (hue meanings, chips via `:inverse-video`, contrast
+  targets) before changing a colour, and follow its "Changing a colour"
+  checklist to keep all three apps and the doc in sync.
+- `ghostty/themes/leuven-dark` remaps leuven-dark's hue-rotated ANSI vector by
+  hue — see that file's header before editing it.
+
 **ef-elea-light** (light) — emacs, mc, ghostty:
 - Background: `#edf5e2` (bg-main)
 - Foreground: `#221321` (fg-main)

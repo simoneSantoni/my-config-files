@@ -1,0 +1,8 @@
+;;; julia-leuven-light-green-theme.el --- Julia colours, Leuven typography -*- lexical-binding: t; -*-
+;; SPDX-License-Identifier: GPL-3.0-or-later
+(deftheme julia-leuven-light-green "Julia's four colours on pale green paper, with Leuven typography.")
+(load (expand-file-name "julia-leuven-common.el"
+                        (file-name-directory (or load-file-name buffer-file-name)))
+      nil t)
+(julia-leuven--define 'julia-leuven-light-green nil t)
+(provide-theme 'julia-leuven-light-green)

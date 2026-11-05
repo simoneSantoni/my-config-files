@@ -50,6 +50,66 @@
 (unless package-archive-contents
   (package-refresh-contents))
 
+;; compat needs its own guard. Emacs 30 ships a *stub* `compat' package
+;; (version 30.2.9999, "Stub of the Compatibility Library") that defines
+;; nothing, and package.el counts it as built-in. So `package-installed-p' is t
+;; even when the real archive package is absent (the `required-packages' loop
+;; below would never install it on a fresh machine), `package-upgrade-all'
+;; skips it, and `package-upgrade' deletes the old copy and then declines to
+;; install the new one -- seen 2026-10, when an upgrade left no compat on disk
+;; and transient broke on `static-when'. `package-alist' lists only real
+;; installs, never the stub, so test that and install from the archive
+;; descriptor, which bypasses the built-in check. It sits up here, ahead of the
+;; loop, because Org from Git (next) declares (compat "31") as well.
+(unless (assq 'compat package-alist)
+  (unless (assq 'compat package-archive-contents)
+    (package-refresh-contents))
+  (let ((package-install-upgrade-built-in t))
+    (package-install (cadr (assq 'compat package-archive-contents)))))
+
+;; --- Org from Git `main' (for org-latex-preview) -----------------------------
+;; org-latex-preview -- tecosaur and Karthik Chikmagalur's rewrite of org's LaTeX
+;; previews (async, cached, live while you type, numbered equations; see
+;; https://abode.karthinks.com/org-latex-preview/) -- is not a package: it is
+;; lisp/org-latex-preview.el inside Org itself, on Org's `main' branch, due in
+;; Org 10.0. Emacs 30.2 bundles Org 9.7.11, so getting it means replacing the
+;; built-in Org with `main', installed with `package-vc-install' as below (the
+;; recipe from that page). The package is named `org', not `org-mode', so every
+;; package that declares a dependency on `org' (org-roam, citar, org-ql, ...)
+;; is satisfied by this copy rather than pulling 9.7 from GNU ELPA.
+;;
+;; Four details, each of which breaks the install if got wrong:
+;;
+;;   - it runs *before* the `required-packages' loop. Those packages are
+;;     byte-compiled on install against whichever Org is on `load-path' at the
+;;     time, and Org macros expanded under 9.7 into an .elc that then runs
+;;     under 10.0 is the "mixed install" the page warns about. After switching
+;;     an existing machine over, M-x package-recompile-all clears that up.
+;;   - the guard is `package-alist', not `package-installed-p' -- the same trap
+;;     as compat above: Org is in `package--builtins', so `package-installed-p'
+;;     is t on a stock Emacs and this would never run.
+;;   - `package-vc-allow-build-commands' must name `org'. Emacs 30 silently
+;;     skips a spec's `:make' unless it does, and without `make autoloads' the
+;;     checkout has no org-loaddefs.el or org-version.el of its own, so
+;;     `load-path' finds the *built-in* ones -- a mixed install out of the box.
+;;     It is a global setq rather than a `let' around the install so that
+;;     M-x package-vc-upgrade RET org RET rebuilds them too. Only `org' is
+;;     listed: the setting runs arbitrary make targets, so it stays opt-in.
+;;   - `:make' is a plain list here. The page writes `:make '("autoloads"
+;;     "info")' *inside* the already-quoted spec, which hands package-vc the
+;;     list (quote ("autoloads" "info")) and `make' the argument "quote".
+;;
+;; The build needs `make' and `makeinfo' (texinfo). The previews themselves need
+;; a TeX distribution and dvisvgm with Ghostscript (`dvisvgm --version=yes');
+;; the settings are in the "Org LaTeX previews" section further down.
+(setq package-vc-allow-build-commands '(org))
+(unless (assq 'org package-alist)
+  (package-vc-install
+   '(org :url "https://git.savannah.gnu.org/git/emacs/org-mode.git"
+         :lisp-dir "lisp"
+         :make ("autoloads" "info")
+         :doc "doc/org.texi")))
+
 ;; Ensure every third-party package this init `require's is actually installed.
 ;; A fresh checkout (or a freshly wiped elpa/) has no packages, so the bare
 ;; `require' calls below would fail with "Cannot open load file". Install any
@@ -64,6 +124,9 @@
                            darkroom
                            csv-mode
                            casual
+                           ;; pg (pg-el): the pure-Elisp PostgreSQL wire client
+                           ;; that pgmacs (installed from Git below) is built on.
+                           pg
                            vterm
                            ghostel
                            pdf-tools
@@ -107,7 +170,6 @@
                            reformatter
                            quarto-mode
                            rainbow-delimiters
-                           sqlite3
                            org-roam
                            org-download
                            org-roam-ql
@@ -119,6 +181,10 @@
                            citar
                            citar-org-roam
                            org-ref
+                           ;; Annotates PDFs into the reading's org-roam node;
+                           ;; configured in slimer's org-config.el with the rest
+                           ;; of the reference stack.
+                           org-noter
                            smudge)))
   (dolist (pkg required-packages)
     (unless (package-installed-p pkg)
@@ -137,7 +203,7 @@
                 '(gnu-elpa-keyring-update
                   claude-code-ide emacs-codex-ide rainbow-csv emacs-zulip
                   dired-sidebar org-sidebar all-the-icons-dired
-                  insert-uuid mathpix))))
+                  insert-uuid mathpix org foxglove-themes))))
 
 ;; Mathpix is installed from upstream Git, alongside the archive packages above.
 (unless (package-installed-p 'mathpix)
@@ -204,6 +270,20 @@
 ;; archive. No dependencies beyond Emacs 27.1.
 (unless (package-installed-p 'insert-uuid)
   (package-vc-install "https://github.com/theesfeld/insert-uuid"))
+
+;; pgmacs: a table-oriented PostgreSQL browser/editor (M-x pgmacs), not on any
+;; archive. Its Package-Requires names `pg' (>= 0.64), which `required-packages'
+;; above already satisfies from MELPA, so package-vc has nothing left to
+;; resolve. Upgrade with M-x package-vc-upgrade RET pgmacs RET.
+(unless (package-installed-p 'pgmacs)
+  (package-vc-install "https://github.com/emarsden/pgmacs"))
+
+;; foxglove-themes: Vegas Harmon's ink-on-paper Modus derivatives (six themes;
+;; see the Themes section), GitLab-only. The repository name is the package
+;; name, so there is no codex/zulip-style naming trap. Its Package-Requires names
+;; `modus-themes' (>= 5.0), already on disk as an ef-themes dependency.
+(unless (package-installed-p 'foxglove-themes)
+  (package-vc-install "https://gitlab.com/vegasharmon/foxglove-themes"))
 
 ;; Import PATH (and other env) from the shell. GUI Emacs launched from a
 ;; desktop launcher gets a minimal PATH that omits ~/.local/bin, so tools like
@@ -316,20 +396,55 @@
 ;; does not re-run startup.
 (setq org-startup-with-inline-images t)
 
+;; --- Org LaTeX previews (org-latex-preview) ----------------------------------
+;; Org 10's preview engine, from the Org `main' install near the top of this
+;; file. `org-latex-preview-mode' renders each fragment as an image once point
+;; leaves it and reveals the source when point enters it, compiling in the
+;; background and caching the images (through org-persist) so a note re-opens
+;; without recompiling. It replaces org-fragtog and org-latex-impatient, which
+;; would fight it -- neither is installed, keep it that way. C-c C-x C-l
+;; (`org-latex-preview') still previews or clears a region or buffer by hand.
+;;
+;; The settings are the ones the abode.karthinks.com page suggests:
+;;   - `:page-width' 0.8 (default 0.6) widens the LaTeX page each fragment is
+;;     typeset on, so long display equations wrap later.
+;;   - `org-latex-preview-mode-display-live' t shows a live-updating render
+;;     beside the fragment being edited -- inline fragments included, where
+;;     the default only does environments and C-c ' buffers -- and the 0.25s
+;;     delay (default 1s) makes it follow the typing.
+;; dvisvgm is the default converter and is what Fedora's TeX Live ships; it
+;; needs Ghostscript support (`dvisvgm --version=yes' lists it) and Emacs
+;; built with SVG, both true here.
+;;
+;; `org-latex-preview-appearance-options' is set with a fresh copy rather than
+;; `plist-put' on the live value, which would edit the quoted default inside
+;; org-latex-preview.el in place. The hook is guarded on the library existing,
+;; so on Emacs's bundled Org 9.7 (Org-from-Git install failed or removed) this
+;; section does nothing rather than erroring in every org buffer.
+(setq org-latex-preview-mode-display-live t
+      org-latex-preview-mode-update-delay 0.25)
+(with-eval-after-load 'org-latex-preview
+  (setq org-latex-preview-appearance-options
+        (plist-put (copy-sequence org-latex-preview-appearance-options)
+                   :page-width 0.8)))
+(when (locate-library "org-latex-preview")
+  (add-hook 'org-mode-hook #'org-latex-preview-mode))
+
 ;; --- Notes (org-roam) -------------------------------------------------------
 ;; Zettelkasten-style linked notes over org-mode. org itself ships with Emacs
 ;; (9.7.11 here), so only org-roam is installed; there is no org package to add.
 ;;
 ;; org-roam keeps a SQLite index of nodes and links, reached through EmacSQL.
 ;; EmacSQL picks its own backend (see `emacsql-sqlite-default-connection'):
-;; built-in SQLite first, else the `sqlite3' dynamic module. This Emacs is built
-;; --with-modules but NOT --with-sqlite3, so `sqlite-available-p' is nil and the
-;; module is what gets used -- hence `sqlite3' in the package list above. The
-;; module is compiled on first load and needs libsqlite3-dev on the system.
-;; EmacSQL dropped its old bundled-executable fallback, so without that module
+;; built-in SQLite first, else the `sqlite3' dynamic module. Fedora's
+;; emacs-pgtk 30.2 is built --with-sqlite3 (`sqlite-available-p' is t), so the
+;; built-in backend (`emacsql-sqlite-builtin') is what gets used and no module
+;; package is needed. The `sqlite3' module package used to be listed above for
+;; builds without --with-sqlite3; it was dropped in 2026-10 once the rpm gained
+;; it (its C build also failed here for want of sqlite3.h). EmacSQL has no
+;; bundled-executable fallback any more, so on an Emacs built WITHOUT
+;; --with-sqlite3 the `sqlite3' package must go back into the list above, or
 ;; org-roam dies at startup with "EmacSQL could not find or compile a back-end".
-;; If Emacs is ever rebuilt with --with-sqlite3, the built-in backend wins
-;; automatically and `sqlite3' becomes dead weight that can be dropped.
 ;; The knowledge base is the whole academic organization repo: every active
 ;; org file there carries a file-level ID and is an org-roam node. The db
 ;; lives inside the repo (dot-file, gitignored) so the index travels with it.
@@ -343,6 +458,25 @@
 ;; Show each node's title, then its tags, in the completion list.
 (setq org-roam-node-display-template
       (concat "${title:*} " (propertize "${tags:20}" 'face 'org-tag)))
+;; ~/slimer/.dir-locals.el sets per-file org behavior (folding, logging,
+;; property inheritance) for the whole notes repo. Those variables carry no
+;; `safe-local-variable' predicate upstream, so visiting any note fires the
+;; "values that may not be safe" prompt. Whitelist the exact value pairs here
+;; instead of answering `!' in the prompt, which would grow the Custom-owned
+;; block at the end of this file. Value pairs, not blanket trust: if the
+;; .dir-locals.el changes, the prompt returns and the new value gets reviewed.
+;; This must stay ahead of `org-roam-db-autosync-mode' below: enabling it runs
+;; `org-roam-db-sync' synchronously, and `org-roam-with-file' calls
+;; `hack-local-variables' on every note changed since the last sync. The Custom
+;; block's copy of these pairs is no help, since it only runs at the end of
+;; init, so a whitelist placed after the sync still prompts at startup whenever
+;; a note was edited outside this Emacs (e.g. a git pull).
+(dolist (pair '((org-startup-folded . content)
+                (org-startup-indented . t)
+                (org-log-done . time)
+                (org-log-into-drawer . "LOGBOOK")
+                (org-use-property-inheritance . t)))
+  (add-to-list 'safe-local-variable-values pair))
 (require 'org-roam)
 ;; Bundled modules: protocol capture, Graphviz graphs, daily notes, and ID-aware HTML export.
 (require 'org-roam-protocol)
@@ -374,23 +508,10 @@
 ;; Org sidebars: task overview and navigable outline tree, respectively.
 (global-set-key (kbd "C-c n s") #'org-sidebar-toggle)
 (global-set-key (kbd "C-c n t") #'org-sidebar-tree-toggle)
-;; ~/org-mode/.dir-locals.el sets per-file org behavior (folding, logging,
-;; property inheritance) for the whole notes repo. Those variables carry no
-;; `safe-local-variable' predicate upstream, so visiting any note fires the
-;; "values that may not be safe" prompt. Whitelist the exact value pairs here
-;; instead of answering `!' in the prompt, which would grow the Custom-owned
-;; block at the end of this file. Value pairs, not blanket trust: if the
-;; .dir-locals.el changes, the prompt returns and the new value gets reviewed.
-(dolist (pair '((org-startup-folded . content)
-                (org-startup-indented . t)
-                (org-log-done . time)
-                (org-log-into-drawer . "LOGBOOK")
-                (org-use-property-inheritance . t)))
-  (add-to-list 'safe-local-variable-values pair))
 
 ;; --- Calendar <-> org agenda -------------------------------------------------
 ;; The agenda itself is configured inside the org repo
-;; (~/org-mode/org-config.el: `org-agenda-files', capture templates, refile,
+;; (~/slimer/org-config.el: `org-agenda-files', capture templates, refile,
 ;; todo keywords) so it travels with the notes, not with this machine's Emacs.
 ;; Until now that file only loaded when loaded by hand, which was fine for
 ;; editing org files but useless for a calendar that should always know what
@@ -398,7 +519,7 @@
 ;; machine without the repo still boots (same policy as mu4e). org is already
 ;; loaded above (org-roam) and the file requires org-agenda itself, so the
 ;; real cost is just its recursive scan of the repo's org files.
-(let ((org-repo-config (expand-file-name "~/org-mode/org-config.el")))
+(let ((org-repo-config (expand-file-name "~/slimer/org-config.el")))
   (when (file-readable-p org-repo-config)
     (load org-repo-config nil :nomessage)))
 ;; The agenda entry point, on the binding the org manual reserves for it.
@@ -441,14 +562,67 @@ agenda: the org agenda binds `org-agenda-current-date', while
 through `boundp' rather than referenced directly, because neither
 is globally special -- each owning file declares it for itself."
   (require 'holidays)
-  (let* ((day (or (and (boundp 'org-agenda-current-date) org-agenda-current-date)
-                  (and (boundp 'date) (symbol-value 'date))))
+  ;; `date' first: diary-lib binds it for the day being listed in *both*
+  ;; directions (org-agenda reaches the diary through `diary-list-entries'
+  ;; too). `org-agenda-current-date' is only a fallback, because org-agenda
+  ;; `setf's it globally and never clears it, so after one agenda run it
+  ;; holds the last day of that run -- read first, it put that day's
+  ;; holidays on every date the calendar or calfw asked about.
+  (let* ((day (or (and (boundp 'date) (consp (symbol-value 'date))
+                       (symbol-value 'date))
+                  (and (boundp 'org-agenda-current-date) org-agenda-current-date)))
          (holidays (and (consp day) (calendar-check-holidays day))))
     (and holidays (mapconcat #'identity holidays "; "))))
 (unless (file-exists-p diary-file)
   (with-temp-file diary-file
     (insert "&%%(os-diary-holiday-entry)\n&%%(org-diary)\n")))
 (setq org-agenda-include-diary t)
+;; The fancy diary display already names the day's holidays in its date header,
+;; and org keeps that text as an entry -- with the sexp above it would list each
+;; holiday twice. The sexp is the single source of holiday names.
+(setq diary-show-holidays-flag nil)
+;; England and Wales bank holidays, as `holiday-local-holidays'. The fixed
+;; ones move to the next working day when they fall on a weekend: New Year's
+;; Day to the Monday, Christmas Day and Boxing Day two days on (25 Sat -> Mon
+;; 27, 25 Sun -> Tue 27 because Boxing Day already takes the Monday, 26 Sat ->
+;; Mon 28, 26 Sun -> Tue 28). `holiday-sexp' evaluates its form with `year'
+;; bound and expects a (M D Y) date back. Good Friday is left out here because
+;; `holiday-christian-holidays' already lists it.
+(defun os-uk-bank-holiday-substitute (year month day)
+  "Date on which the bank holiday nominally on DAY MONTH YEAR is observed."
+  (let* ((abs (calendar-absolute-from-gregorian (list month day year)))
+         (dow (% abs 7)))                ; 0 = Sunday, 6 = Saturday
+    (calendar-gregorian-from-absolute
+     (cond ((= month 12) (if (memq dow '(0 6)) (+ abs 2) abs))
+           ((= dow 6) (+ abs 2))
+           ((= dow 0) (+ abs 1))
+           (t abs)))))
+(setq holiday-local-holidays
+      '((holiday-sexp '(os-uk-bank-holiday-substitute year 1 1)
+                      "New Year's Day (bank holiday)")
+        (holiday-easter-etc 1 "Easter Monday (bank holiday)")
+        (holiday-float 5 1 1 "Early May bank holiday")
+        (holiday-float 5 1 -1 "Spring bank holiday")
+        (holiday-float 8 1 -1 "Summer bank holiday")
+        (holiday-sexp '(os-uk-bank-holiday-substitute year 12 25)
+                      "Christmas Day (bank holiday)")
+        (holiday-sexp '(os-uk-bank-holiday-substitute year 12 26)
+                      "Boxing Day (bank holiday)")))
+;; Emacs's stock `calendar-holidays' is the concatenation of the
+;; `holiday-*-holidays' lists, Hebrew and Islamic ones included. Those two
+;; have no bearing on this diary, so the list is rebuilt from the same parts
+;; without them. Set inside `with-eval-after-load' because the default is
+;; computed when holidays.el loads, and that happens lazily (the diary sexp
+;; above requires it on first use), so an early `setq' would be overwritten.
+(with-eval-after-load 'holidays
+  (setq calendar-holidays
+        (append holiday-general-holidays
+                holiday-local-holidays
+                holiday-other-holidays
+                holiday-christian-holidays
+                holiday-bahai-holidays
+                holiday-oriental-holidays
+                holiday-solar-holidays)))
 (setq calendar-mark-holidays-flag t)
 (setq calendar-mark-diary-entries-flag t)
 (define-key calendar-mode-map (kbd "c") #'org-calendar-goto-agenda)
@@ -463,7 +637,7 @@ is globally special -- each owning file declares it for itself."
 ;;
 ;; Two sources are loaded, matching the two the section above wires together:
 ;;   calfw-org -- org agenda entries (`org-agenda-files', so it follows
-;;                ~/org-mode/org-config.el and its mid-session refresh advice);
+;;                ~/slimer/org-config.el and its mid-session refresh advice);
 ;;   calfw-cal -- the diary file, which is where holidays and hand-written
 ;;                lines live.
 ;; `os-calfw-open' shows them in one grid rather than making a choice between
@@ -476,25 +650,51 @@ is globally special -- each owning file declares it for itself."
 ;;
 ;; Nothing is `require'd at startup: all four entry points are autoloaded, and
 ;; calfw-org pulls in org-agenda, which is already loaded by org-config.el.
+;; calfw draws holiday names into the day cells itself from `calendar-holidays'
+;; -- and the diary source below already lists them through the holiday sexp in
+;; the diary file, so each would appear twice. Same policy as
+;; `diary-show-holidays-flag' above: the diary sexp is the one source.
+(setq calfw-display-calendar-holidays nil)
 (autoload 'calfw-open-calendar-buffer "calfw" nil t)
 (autoload 'calfw-org-create-source "calfw-org")
 (autoload 'calfw-cal-create-source "calfw-cal")
+(defun os-calfw-org-events (begin end)
+  "Collect Org events between BEGIN and END using the current agenda files."
+  (when (fboundp 'organization-refresh-agenda-files)
+    (organization-refresh-agenda-files))
+  (calfw-org--schedule-period-to-calendar (org-agenda-files) begin end))
+
 (defun os-calfw-open ()
   "Open a calfw month grid showing org agenda entries and diary entries."
   (interactive)
   (require 'calfw-org)
   (require 'calfw-cal)
   (calfw-open-calendar-buffer
-   ;; nil org-files = whatever `org-agenda-files' holds when the grid is
-   ;; built, so the mid-session refresh advice in org-config.el is honoured.
-   :contents-sources (list (calfw-org-create-source nil "org" "SteelBlue")
-                           (calfw-cal-create-source "diary" "ForestGreen"))
+   ;; Resolve files on every refresh: `calfw-org-create-source' captures
+   ;; its file list once and does not run the advice on `org-agenda'.
+   :contents-sources (list (make-calfw-source
+                            :name "org" :color "SteelBlue"
+                            :data #'os-calfw-org-events)
+                          (calfw-cal-create-source "diary" "ForestGreen"))
    :view 'month
    :sorter #'calfw-org--schedule-sorter))
 ;; `C-c v' for *v*iew, not `C-c c': the org manual reserves that one for
-;; `org-capture', and ~/org-mode/org-config.el already defines the templates
+;; `org-capture', and ~/slimer/org-config.el already defines the templates
 ;; it would run.
 (global-set-key (kbd "C-c v") #'os-calfw-open)
+;; The diary file carries `&%%(org-diary)' so that `d' in the calendar lists
+;; org entries. calfw-cal reads that same file through `diary-list-entries',
+;; so in the grid every org entry arrived twice: once from the org source and
+;; once, relabelled "diary", from the diary source. Org's own agenda avoids
+;; the same duplication by setting `org-disable-agenda-to-diary' while it
+;; reads the diary, which makes `org-diary' contribute nothing; binding it
+;; around calfw-cal's read gives the grid the same treatment and leaves `d' in
+;; the calendar untouched.
+(define-advice calfw-cal--schedule-period-to-calendar
+    (:around (fn &rest args) os-calfw-cal-without-org)
+  "Read the diary for calfw without the org entries `org-diary' would add."
+  (let ((org-disable-agenda-to-diary t))
+    (apply fn args)))
 
 ;; --- Bibliography, graph, and node queries ----------------------------------
 ;; Four things layered on org-roam, all from MELPA:
@@ -505,7 +705,7 @@ is globally special -- each owning file declares it for itself."
 ;;   org-roam-ui            -- the node graph, served to a browser;
 ;;   org-roam-ql            -- a query language over the node database.
 ;;
-;; This block deliberately sits after ~/org-mode/org-config.el is loaded above.
+;; This block deliberately sits after ~/slimer/org-config.el is loaded above.
 ;; That file owns the bibliography path -- it is what puts bibliography.bib on
 ;; `org-cite-global-bibliography', `bibtex-completion-bibliography', and
 ;; `citar-bibliography' -- because the bibliography travels with the notes repo
@@ -578,7 +778,7 @@ is globally special -- each owning file declares it for itself."
 ;; org-ref-helm.el and org-ref-ivy.el, fail to byte-compile on install because
 ;; helm and ivy aren't installed -- expected, and nothing loads them.)
 ;;
-;; `bibtex-completion-bibliography' -- set by ~/org-mode/org-config.el, same as
+;; `bibtex-completion-bibliography' -- set by ~/slimer/org-config.el, same as
 ;; for citar -- is where these commands file new entries, so there is no
 ;; separate `org-ref-default-bibliography' to keep in sync.
 (global-set-key (kbd "C-c n d") #'doi-utils-add-bibtex-entry-from-doi)
@@ -638,6 +838,14 @@ is globally special -- each owning file declares it for itself."
 ;; extra `require' is needed for the menu itself.
 (keymap-set csv-mode-map "M-m" #'casual-csv-tmenu)
 
+;; --- PostgreSQL -------------------------------------------------------------
+;; pgmacs (Git, installed above) talks to PostgreSQL over the wire protocol via
+;; pg-el -- no libpq, no psql needed. Deliberately *not* `require'd: its entry
+;; points (`pgmacs', `pgmacs-open-string', `pgmacs-open-uri') are autoloaded,
+;; and requiring it would drag pg/peg/widget in at startup for a client that is
+;; used on demand. Nothing to configure here: connection details are
+;; entered interactively (or passed as a string/URI to the open commands).
+
 ;; --- vterm ------------------------------------------------------------------
 ;; Fully-featured terminal emulator backed by a native module. The module is
 ;; compiled on first use and needs cmake + libtool installed on the system.
@@ -673,6 +881,16 @@ is globally special -- each owning file declares it for itself."
 ;; native diffs and in-buffer approval flows. `C-c C-;' opens its transient menu.
 (require 'codex-ide)
 (global-set-key (kbd "C-c C-;") #'codex-ide-menu)
+
+;; Match the GUI font in code, tables, and command output; follow font changes.
+(require 'face-remap)
+
+(defun simon-codex-use-default-font ()
+  "Use the GUI default face for fixed-width text in Codex buffers."
+  (face-remap-set-base 'fixed-pitch 'default))
+
+(add-hook 'codex-ide-session-mode-hook #'simon-codex-use-default-font)
+
 
 ;; --- pdf-tools --------------------------------------------------------------
 ;; Renders PDFs as images (via a native `epdfinfo' server built from poppler)
@@ -726,44 +944,43 @@ is globally special -- each owning file declares it for itself."
 ;; tinting an icon (`auto', the default, drops the counts on narrow windows).
 (setq doom-modeline-check 'full)
 
-;; Appearance: a slightly taller bar breathes better at this font size, and
-;; the hud draws a mini indicator of the window's position in the buffer in
-;; place of the plain bar.
-(setq doom-modeline-height 28)
-(setq doom-modeline-hud t)
+;; Keep a consistent minimum height in main and sidebar modelines.  The
+;; `bar' segment supplies Doom's height strut as well as the vertical divider;
+;; omitting it from main made Treemacs (which includes it) appear taller.
+;; Use the plain divider rather than the buffer-position HUD.
+(setq doom-modeline-height 28
+      doom-modeline-hud nil)
 
-;; Custom segment: the Emacs logo plus the host OS logo (Tux), drawn as
-;; Nerd Font glyphs (so they inherit the mode-line face and scale with the
-;; font). `nf-custom-emacs' is the Emacs icon; `nf-linux-tux' is the penguin.
-(doom-modeline-def-segment os-emacs-logos
+;; Tux alone marks the host OS; the following bar separates it from buffer
+;; information.  A 1.4 scale makes Tux prominent; the shared 28px strut
+;; remains the minimum height for main and sidebar modelines.
+(doom-modeline-def-segment os-tux
   (concat (doom-modeline-spc)
-          (nerd-icons-sucicon "nf-custom-emacs" :v-adjust 0.0)
-          (doom-modeline-vspc)
-          (nerd-icons-flicon "nf-linux-tux" :v-adjust 0.0)
+          (nerd-icons-flicon "nf-linux-tux" :height 1.4 :v-adjust 0.0)
           (doom-modeline-spc)))
 
-;; Redefine the `main' mode-line with `os-emacs-logos' prepended to the left
-;; side. The two segment lists below mirror doom-modeline's upstream default
-;; for `main' (see `doom-modeline.el'); if doom-modeline changes its defaults
-;; in a future update, re-sync these lists.
+;; Standard main segments with Tux prepended.  These lists follow
+;; doom-modeline's defaults; re-sync them when upstream changes.
 (doom-modeline-def-modeline 'main
-  '(os-emacs-logos eldoc bar window-state workspace-name window-number modals matches follow buffer-info remote-host buffer-position word-count parrot selection-info)
+  '(os-tux bar eldoc window-state workspace-name window-number modals matches follow buffer-info remote-host buffer-position word-count parrot selection-info)
   '(compilation objed-state misc-info project-name persp-name battery grip irc mu4e gnus github debug repl lsp minor-modes input-method indent-info buffer-encoding major-mode process vcs check time))
 
 (minions-mode 1)
 (doom-modeline-mode 1)
 
-;; --- Themes (ef-themes + leuven + solarized + doom-themes) -------------------
-;; Only one theme is ever active, and `ef-elea-light' below is it: the light half
-;; of Protesilaos' Elea pair, a warm green-tinted background with the org
-;; typography set up further down. `leuven' -- Fabrice Niessen's light theme,
-;; which ships *with Emacs* (etc/themes/leuven-theme.el), so it needs no package,
-;; no entry in `required-packages' and nothing installed, the built-in themes
-;; directory already being the `t' element of `custom-theme-load-path' -- is the
-;; fallback that the org styling below is modelled on. Its companion
-;; `leuven-dark' is bundled too.
+;; --- Themes (ef-themes + leuven + solarized + doom-themes + foxglove) --------
+;; Only one theme is ever active, and `ef-elea-light' at the end of this section
+;; is it. `leuven' -- Fabrice Niessen's light theme, the one the ef-themes org
+;; styling below is modelled on -- and `leuven-dark' ship *with Emacs*
+;; (etc/themes/), so they need no package, no entry in `required-packages' and
+;; nothing installed, the built-in themes directory already being the `t'
+;; element of `custom-theme-load-path'. leuven-dark's mode-line is unreadable
+;; under doom-modeline as shipped; `os-leuven-dark-mode-line-faces' below repairs
+;; it. leuven-dark, the previous active theme, is still fully set up for a switch
+;; back: the `os-leuven-dark-*' hooks each test the theme's name, so they sit
+;; idle on `enable-theme-functions' under any other theme.
 ;;
-;; The three installed theme *packs* are here to switch to with M-x load-theme,
+;; The four installed theme *packs* are here to switch to with M-x load-theme,
 ;; so they are deliberately not `require'd or loaded for their themes' sake: a
 ;; pack costs nothing until a theme from it is loaded, and each package's
 ;; autoloads already add its directory to `custom-theme-load-path', which is all
@@ -774,11 +991,11 @@ is globally special -- each owning file declares it for itself."
 ;; M-x disable-theme (or ef-themes' own commands, which do this for you) first.
 ;;
 ;;   ef-themes        -- Protesilaos' legible light/dark pairs (13 x 2); the
-;;                       active pack. M-x ef-themes-select, or ef-themes-toggle
+;;                       main pack. M-x ef-themes-select, or ef-themes-toggle
 ;;                       for the pair named in `ef-themes-to-toggle' below; the
 ;;                       `require' is what makes that pair, the heading styles
-;;                       and the palette overrides below all take effect before
-;;                       the theme is loaded at the end of this section.
+;;                       and the palette overrides below all take effect
+;;                       whenever an ef theme is loaded.
 ;;   solarized-theme  -- bbatsov's Emacs port of Ethan Schoonover's Solarized;
 ;;                       13 variants (solarized-light/-dark, the -high-contrast
 ;;                       and -selenized-* sets, plus gruvbox/wombat/zenburn).
@@ -787,6 +1004,15 @@ is globally special -- each owning file declares it for itself."
 ;;                       Its optional extras (`doom-themes-visual-bell-config',
 ;;                       `doom-themes-org-config') need an explicit
 ;;                       (require 'doom-themes) and are not enabled here.
+;;   foxglove-themes  -- Vegas Harmon's low-contrast, journal-like themes,
+;;                       built to stay legible on e-ink: `foxglove' (Linen
+;;                       paper), `foxglove-vellum' (warmer), `foxglove-mono'
+;;                       (exact greys only), each with a -dark twin. Installed
+;;                       from GitLab with `package-vc-install' above. Like the
+;;                       ef-themes they are Modus derivatives, so the Modus
+;;                       settings in the next section reach them too -- see
+;;                       the note after the palette overrides. Their own
+;;                       options are in M-x customize-group foxglove-themes.
 (require 'ef-themes)
 (setq ef-themes-to-toggle '(ef-elea-light ef-elea-dark))
 
@@ -843,6 +1069,25 @@ is globally special -- each owning file declares it for itself."
       '((bg-heading-1 bg-blue-subtle)
         (fg-heading-1 blue-cooler)
         (overline-heading-1 border)
+        (overline-heading-2 border)))
+
+;; The catch with "every ef theme at once": both variables above are really
+;; `modus-themes-headings' and `modus-themes-common-palette-overrides', so they
+;; reach every Modus *derivative*, foxglove included. The heading sizes are
+;; welcome there -- foxglove leaves sizing to `modus-themes-headings' by
+;; design, so the leuven scale carries over unchanged. The palette overrides
+;; are not: Modus appends the common overrides after a derivative's own, and
+;; both outrank the theme's palette, so under foxglove level 1 would turn into
+;; lapis on a blue band instead of foxglove's body-ink heading on its grey
+;; `bg-dim' band. `foxglove-themes-palette-overrides' comes first in that
+;; chain, so restating foxglove's own values for the four entries there puts
+;; them back. These are the values for its default heading styles (level 1
+;; `band', level 2 `rule'); if `foxglove-themes-heading-1' or `-2' is changed,
+;; drop the matching lines here or they will pin the old style's colours.
+(setq foxglove-themes-palette-overrides
+      '((bg-heading-1 bg-dim)
+        (fg-heading-1 fg-main)
+        (overline-heading-1 fox-rule)
         (overline-heading-2 border)))
 
 ;; Without this the overline stops where the headline text stops, which reads as
@@ -943,6 +1188,330 @@ Added to `enable-theme-functions'; a no-op for every other theme."
 
 (add-hook 'enable-theme-functions #'os-ef-themes-org-header-faces)
 
+;; --- A dark mode-line for leuven-dark -----------------------------------------
+;; leuven-dark is a hue-rotated leuven, and it rotated everything except the
+;; mode-line, which stays a light tan bar (#cfa161) with dark text. Every
+;; *other* colour in the theme is tuned for the dark #25202a buffer background:
+;; `success' is #ff01ff (magenta), `warning' #065aff, `error' #06ffff. doom-
+;; modeline's segments inherit those three (`doom-modeline-info' -> success for
+;; the VCS branch, the full battery, LSP ...), and nerd-icons' fixed icon colours
+;; are likewise picked for dark backgrounds -- so on the tan bar every coloured
+;; element sat at 1.1-2.3:1 contrast: magenta icons on orange, unreadable.
+;;
+;; Recolouring the dozens of doom-modeline faces dark would fight both theme
+;; and icon pack, so the bar comes to them instead: the active mode-line takes
+;; leuven-dark's own `highlight' brown (#3c312a), on which the theme's success/
+;; error/keyword colours reach 4-12:1, with the tan kept as a 1px box so the
+;; leuven accent and the active/inactive cue survive. The inactive bar drops to
+;; the buffer background. Three things follow from the text turning light:
+;;   - `mode-line-buffer-id'/`mode-line-emphasis' were #25202a (dark on tan)
+;;     and must flip to white, or the buffer name vanishes;
+;;   - `warning' blue (#065aff) is 2.4:1 even here, and only 3.0:1 in
+;;     leuven-dark's own buffers, so `warning' itself is lifted to #6f8cff --
+;;     the same blue as slot 4 of the leuven-dark Ghostty theme -- and with it
+;;     `compilation-mode-line-run' (doom-modeline's LSP-running face) and
+;;     `mode-line-highlight' (hover), which used the same blue.
+;;   - every face listed must be one leuven-dark *already* styles. For a theme
+;;     other than `user', `custom-theme-set-faces' only records a new face in
+;;     `theme-settings' (`custom--inhibit-theme-enable' is `apply-only-user'
+;;     outside `load-theme'); it never reaches the face, so the recalc below
+;;     finds nothing. That is why `warning' is lifted rather than
+;;     `doom-modeline-warning', which leuven-dark does not mention: an entry
+;;     for it here is silently dropped.
+;;   - only this one theme is touched: the guard is an exact name match, and
+;;     the faces are attributed to leuven-dark with `custom-theme-set-faces',
+;;     so `disable-theme' reverts them. The `custom-theme-recalc-face' sweep is
+;;     load-bearing for the reason given above `os-ef-themes-org-header-faces'.
+(defun os-leuven-dark-mode-line-faces (theme)
+  "Give THEME a dark, legible mode-line when it is `leuven-dark'.
+Added to `enable-theme-functions'; a no-op for every other theme."
+  (when (eq theme 'leuven-dark)
+    (let* ((spec '((class color) (min-colors 89)))
+           (faces
+            `((mode-line ((,spec :box (:line-width 1 :color "#cfa161")
+                                 :foreground "#cfccd2" :background "#3c312a")))
+              (mode-line-inactive ((,spec :box (:line-width 1 :color "#3e3944")
+                                          :foreground "#848088"
+                                          :background "#25202a")))
+              (mode-line-buffer-id ((,spec :weight bold :foreground "#ffffff")))
+              (mode-line-emphasis ((,spec :weight bold :foreground "#ffffff")))
+              (mode-line-highlight ((,spec :foreground "#6f8cff")))
+              (warning ((,spec :weight bold :foreground "#6f8cff")))
+              (compilation-mode-line-run ((,spec :weight bold
+                                                 :foreground "#6f8cff"))))))
+      (apply #'custom-theme-set-faces theme faces)
+      (mapc (lambda (entry) (custom-theme-recalc-face (car entry))) faces))))
+
+(add-hook 'enable-theme-functions #'os-leuven-dark-mode-line-faces)
+
+;; Apply theme faces *now*, including faces the theme never styled. Outside
+;; `load-theme', `custom-theme-set-faces' only records a face the theme does
+;; not already style in the theme's `theme-settings' and never puts it on the
+;; face (`custom--inhibit-theme-enable' is `apply-only-user' there) -- the
+;; trap the mode-line note above describes, which is why that function lifts
+;; `warning' rather than `doom-modeline-warning'. So after recording each
+;; face, this does by hand what `enable-theme' would have done -- push the
+;; spec onto the face's `theme-face' list under THEME -- and recalculates.
+;; The record in `theme-settings' is what lets `disable-theme' take it off
+;; again; binding `custom--inhibit-theme-enable' instead would also set
+;; `saved-face', which M-x customize would later write into the Custom
+;; block. Harmless for faces the theme does style. The recalc is needed for
+;; those too, for the reason given above `os-ef-themes-org-header-faces'.
+(defun os-custom-theme-apply-faces (theme faces)
+  "Give THEME the face specs FACES and apply them to existing frames.
+FACES is a list of entries as for `custom-theme-set-faces'.  Unlike that
+function alone, this also reaches faces THEME did not style before."
+  (apply #'custom-theme-set-faces theme faces)
+  (dolist (entry faces)
+    (let ((face (car entry)))
+      (put face 'theme-face
+           (cons (list theme (cadr entry))
+                 (assq-delete-all theme (copy-sequence
+                                         (get face 'theme-face)))))
+      (custom-theme-recalc-face face))))
+
+;; --- Org TODO keywords and headings for leuven-dark -------------------------
+;; leuven's `org-todo' is a red box; the hue rotation turned it into dark teal
+;; (#2c5462 on #253743, about 1.3:1), so open keywords were the least visible
+;; thing on a heading instead of the most. Each task status now gets its own
+;; filled chip -- dark #25202a text on a colour from the setup's palette --
+;; so a status reads at a glance, in a heading and in the agenda (which draws
+;; keywords with the same faces):
+;;   TODO       yellow #ffff0b    `org-todo'         14.8:1
+;;   NEXT       LightSkyBlue      `os-org-todo-next'  9.3:1  (the level-1 band's)
+;;   WAIT       orange #ff9029    `os-org-todo-wait'  7.0:1  (blocked on others)
+;;   HOLD       pink #ff9bff      `os-org-todo-hold'  8.6:1  (parked)
+;;   DONE       SeaGreen3         `org-done'          7.8:1  (the cursor's)
+;;   CANCELLED  grey #848088, struck through   `os-org-todo-cancelled'  4.1:1
+;; The keywords are org-config.el's `org-todo-keywords'; the faces are mapped
+;; here through `org-todo-keyword-faces' (which org-config.el does not set),
+;; because they are a theme matter. The four `os-org-todo-*' faces default to
+;; inheriting `org-todo' / `org-done', so under any other theme every status
+;; simply looks like that theme's own TODO or DONE -- only leuven-dark gives
+;; them colours, below. Add a line to both lists when a keyword is added.
+;;
+;; A filled chip is the one shape nothing else in leuven-dark uses at that
+;; brightness. (Yellow text on a dark yellow tint was tried first and read as
+;; just another coloured word.) The box is the background colour, an edge
+;; that only shows where a chip sits on something bright, such as the
+;; level-1 band.
+;;
+;; Finished items still recede, by *style* rather than dimness. leuven-dark
+;; draws a DONE heading's text (`org-headline-done') in #57525c, tuned to fade
+;; into the plain background and 1.1-1.4:1 on a coloured band -- unreadable.
+;; It is now a light grey #c4c0c8 in italics (3.0:1 on the level-1 band, 8.9
+;; on the plain background), plainly not the white of an open heading.
+;;
+;; Each chip colour is the *foreground* under `:inverse-video', not a background.
+;; `hl-line' (on in every text-mode buffer) is an overlay, and overlay faces
+;; win over the text-property face org puts on the keyword: on the cursor's
+;; line its #2d2058 background replaced the yellow, leaving dark text on dark
+;; -- the chip vanished exactly where you were looking. With inverse video the
+;; overlay's background only lands in the swapped-in *text* slot, so the chip
+;; keeps its colour on every line, its text #25202a off the cursor line and
+;; #2d2058 on it; the region behaves the same way.
+;;
+;; Headings 1-3 are restyled. leuven-dark's own bands are the hue rotation of
+;; leuven's pale grey/blue/green: #322d37, #3d2a2d, #332038 -- all within
+;; 1.2:1 of the #25202a background, so they read as one dark bluish grey and
+;; the outline has no visible shape. Now only level 1 is a band; levels 2-3
+;; are coloured text on the plain background, so the top level stands apart
+;; and the levels below it read as a quieter, colour-coded outline:
+;;   1  band: cyan #06ffff mixed 35% into the background = #1a6e75, white
+;;      text (5.9:1), overline rule in the undiluted #06ffff
+;;   2  yellow text #ffff0b (14.8:1), leuven-dark's `font-lock-keyword-face'
+;;   3  teal text #06c8cf (7.7:1), the teal of leuven-dark's js2-error box
+;;
+;; #06ffff is leuven-dark's own cyan (its shipped `error'), and the colour of
+;; vertico's match patches below, so the top of the outline and "what you
+;; searched for" share one hue. The band is "translucent" -- the full colour
+;; mixed into the background, the nearest a face gets to transparency --
+;; because it must carry light text: `hl-line' is an overlay, and its
+;; background replaces the band's on the cursor line, so a band with dark
+;; text would vanish there. (Full-strength cyan, too light for white text,
+;; needed the TODO chip's `:inverse-video' trick, which also inverted tags and
+;; links into patches.) On the band the TODO chip is 5.5:1 and the italic
+;; DONE grey 3.3:1. Level-2 yellow text shares its colour with the TODO chip,
+;; which stays distinct as a filled chip with dark text. Earlier rounds tried
+;; green, wine, ochre, pink, yellow, orange, sky blue, bright blue,
+;; LightSkyBlue and full-strength cyan.
+;; Levels 4-8 keep leuven-dark's coloured text.
+;;
+;; Setting a theme face replaces the theme's whole spec for it, so level 1
+;; restates its height through leuven-dark's own `leuven-dark-scale-font' --
+;; 1.3, or 1.0 when `leuven-dark-scale-outline-headlines' is nil.
+(defface os-org-todo-next '((t :inherit org-todo))
+  "Face for the NEXT keyword; see `org-todo-keyword-faces'.")
+(defface os-org-todo-wait '((t :inherit org-todo))
+  "Face for the WAIT keyword; see `org-todo-keyword-faces'.")
+(defface os-org-todo-hold '((t :inherit org-todo))
+  "Face for the HOLD keyword; see `org-todo-keyword-faces'.")
+(defface os-org-todo-cancelled '((t :inherit org-done))
+  "Face for the CANCELLED keyword; see `org-todo-keyword-faces'.")
+
+(setq org-todo-keyword-faces
+      '(("NEXT" . os-org-todo-next)
+        ("WAIT" . os-org-todo-wait)
+        ("HOLD" . os-org-todo-hold)
+        ("CANCELLED" . os-org-todo-cancelled)))
+
+(defun os-leuven-dark-org-faces (theme)
+  "Give org TODO keywords and headings stronger faces under `leuven-dark'.
+THEME is the theme just enabled.  Added to `enable-theme-functions';
+a no-op for every other theme."
+  (when (eq theme 'leuven-dark)
+    (let* ((spec '((class color) (min-colors 89)))
+           (chip (lambda (colour &rest more)
+                   `((,spec :weight bold :box (:line-width 1 :color "#25202a")
+                            :foreground ,colour :background "#25202a"
+                            :inverse-video t ,@more))))
+           (faces
+            `((org-todo ,(funcall chip "#ffff0b"))
+              (os-org-todo-next ,(funcall chip "#87cefa"))
+              (os-org-todo-wait ,(funcall chip "#ff9029"))
+              (os-org-todo-hold ,(funcall chip "#ff9bff"))
+              (org-done ,(funcall chip "#43cd80"))
+              (os-org-todo-cancelled ,(funcall chip "#848088"
+                                               :strike-through t))
+              (org-headline-done ((,spec :height 1.0 :weight normal
+                                         :slant italic :foreground "#c4c0c8")))
+              (org-level-1 ((,spec ,@(leuven-dark-scale-font
+                                      leuven-dark-scale-outline-headlines 1.3)
+                                   :weight bold :overline "#06ffff"
+                                   :foreground "#ffffff" :background "#1a6e75"
+                                   :extend t)))
+              (org-level-2 ((,spec :height 1.0 :weight bold
+                                   :foreground "#ffff0b")))
+              (org-level-3 ((,spec :height 1.0 :weight bold
+                                   :foreground "#06c8cf"))))))
+      (os-custom-theme-apply-faces theme faces))))
+
+(add-hook 'enable-theme-functions #'os-leuven-dark-org-faces)
+
+;; --- Comments and tags under leuven-dark --------------------------------------
+;; leuven-dark's comments (#767283, 3.4:1) and org tags (#6a6065, 2.6:1) are
+;; dimmed past legibility. Org's @@backend:...@@ export snippets show both at
+;; once -- the `@@' in `font-lock-comment-face', the backend name matched as a
+;; tag -- so a `@@comment: ...@@' note was the darkest text on the page.
+;; Comments take the lighter grey leuven-dark's own source suggests, in a
+;; trailing `; #9a969e' beside both comment faces (5.5:1; still well below
+;; body text's 10:1, so comments recede). This is global: code comments in
+;; every mode change with it. Tags take #a9a5ad (6.6:1) and keep their own
+;; #25202a background, which is what keeps them readable as dark chips on
+;; the level-1 heading band. All four faces are ones leuven-dark styles, so
+;; plain `custom-theme-set-faces' reaches them.
+(defun os-leuven-dark-comment-faces (theme)
+  "Lighten comments and org tags when THEME is `leuven-dark'.
+Added to `enable-theme-functions'; a no-op for every other theme."
+  (when (eq theme 'leuven-dark)
+    (let* ((spec '((class color) (min-colors 89)))
+           (faces
+            `((font-lock-comment-face ((,spec :slant italic
+                                              :foreground "#9a969e")))
+              (font-lock-comment-delimiter-face ((,spec :foreground "#9a969e")))
+              (org-tag ((,spec :weight normal :slant italic
+                               :foreground "#a9a5ad" :background "#25202a"))))))
+      (apply #'custom-theme-set-faces theme faces)
+      (mapc (lambda (entry) (custom-theme-recalc-face (car entry))) faces))))
+
+(add-hook 'enable-theme-functions #'os-leuven-dark-comment-faces)
+
+;; --- The cursor under leuven-dark ---------------------------------------------
+;; leuven-dark's cursor is the orange-red #e1420b, a near neighbour of the
+;; burnt-orange region and of the orange link text, so it got lost exactly
+;; where it mattered. It takes SeaGreen3, #43cd80 -- the same colour in Emacs'
+;; X11 names and in LaTeX's xcolor `x11names' (.264, .804, .5), so it matches
+;; documents that use it -- which no other face in this setup uses: 7.8:1 on
+;; the background, 7.0:1 on `hl-line', and the glyph drawn under a box cursor
+;; (in the background colour) stays 7.8:1. The 2.6:1 on the level-1 heading
+;; band is the one weak spot. `cursor' is a face leuven-dark styles, so plain
+;; `custom-theme-set-faces' reaches it.
+(defun os-leuven-dark-cursor-face (theme)
+  "Make the cursor SeaGreen3 when THEME is `leuven-dark'.
+Added to `enable-theme-functions'; a no-op for every other theme."
+  (when (eq theme 'leuven-dark)
+    (custom-theme-set-faces
+     theme '(cursor ((((class color) (min-colors 89)) :background "#43cd80"))))
+    (custom-theme-recalc-face 'cursor)))
+
+(add-hook 'enable-theme-functions #'os-leuven-dark-cursor-face)
+
+;; --- The minibuffer under leuven-dark: vertico and the prompt ----------------
+;; `vertico-current' inherits `highlight', which leuven-dark sets to #3c312a --
+;; 1.3:1 against the #25202a background, so the selected candidate was a
+;; barely-darker smudge. It becomes a yellow bar instead, the keyword yellow
+;; #ffff0b of the TODO chip and the level-3 band, with dark text (~15:1).
+;; (Burnt orange #752c0b came first, and read as brown.) Only the face vertico
+;; owns changes -- `highlight' itself also drives mouse hover and LSP symbol
+;; highlighting, which should stay quiet.
+;;
+;; The yellow is again a foreground under `:inverse-video', but here for the
+;; candidate's *other* faces rather than for `hl-line'. Vertico appends
+;; `vertico-current' beneath the faces already on the candidate, so orderless'
+;; match letters and marginalia's annotations keep their own light
+;; foregrounds -- 1.4-2.3:1 on a plain yellow background. Under inverse video
+;; each of those foregrounds becomes the background of its own stretch, with
+;; the dark #25202a as text: the bar turns into yellow with coloured match
+;; patches and a pale annotation patch, every piece dark-on-bright.
+;;
+;; Those match patches are therefore only as bright as the match faces'
+;; foregrounds, and the defaults were pastel: `completions-common-part' (the
+;; prefix a `basic'-style match covers -- the whole file name in `find-file')
+;; is "lightblue", a washed-out patch beside the yellow. The match faces take
+;; vivid leuven-dark colours instead: cyan #06ffff for the common part (and
+;; bold, like orderless' own), then cyan / pink #ff9bff / green #78ff7c /
+;; orange #ff9029 for orderless' four components. As patches they carry dark
+;; text at 7.0-12.7:1 and stand off the yellow by hue (nothing is brighter
+;; than yellow, so it cannot be by lightness); on every other candidate they
+;; are the same colours as text on the dark background, 7.0-12.7:1 too.
+;;
+;; Marginalia's file permissions (`-rw-r--r--') colour each letter by kind
+;; and every `-' with `marginalia-file-priv-no', which inherits `shadow'
+;; (#848088, 4.1:1) -- the dashes were the dimmest thing in the column, and
+;; on the yellow bar a dull grey patch. They take the light grey #c4c0c8 of
+;; DONE headlines instead (8.9:1 as text, and as a patch with dark text);
+;; `shadow' itself is left alone.
+;;
+;; The prompt (`minibuffer-prompt', and its `-noticeable-' twin that
+;; leuven-dark styles identically) was white on the saturated blue #0628ff,
+;; the loudest thing in the minibuffer. It takes SeaGreen3 #43cd80, the
+;; cursor's colour (see `os-leuven-dark-cursor-face'), at full strength with
+;; dark #25202a text (7.8:1) -- white would be ~2:1 on it. Dark text on a
+;; plain background is safe here, unlike on the heading bands: the minibuffer
+;; has no `hl-line' to replace it. (Teal and a translucent pink came first.)
+;;
+;; leuven-dark styles neither `vertico-current' nor the match faces, so this
+;; goes through `os-custom-theme-apply-faces' rather than plain
+;; `custom-theme-set-faces'. The orderless faces are set even before
+;; orderless loads; their theme spec is waiting when its `defface' runs.
+(defun os-leuven-dark-minibuffer-faces (theme)
+  "Restyle vertico's current candidate and the prompt under `leuven-dark'.
+THEME is the theme just enabled.  Added to `enable-theme-functions';
+a no-op for every other theme."
+  (when (eq theme 'leuven-dark)
+    (let* ((spec '((class color) (min-colors 89)))
+           (prompt `((,spec :weight bold :foreground "#25202a"
+                            :background "#43cd80")))
+           (faces `((vertico-current ((,spec :foreground "#ffff0b"
+                                             :background "#25202a"
+                                             :inverse-video t)))
+                    (minibuffer-prompt ,prompt)
+                    (minibuffer-noticeable-prompt ,prompt)
+                    (completions-common-part ((,spec :weight bold
+                                                     :foreground "#06ffff")))
+                    (orderless-match-face-0 ((,spec :weight bold
+                                                    :foreground "#06ffff")))
+                    (orderless-match-face-1 ((,spec :weight bold
+                                                    :foreground "#ff9bff")))
+                    (orderless-match-face-2 ((,spec :weight bold
+                                                    :foreground "#78ff7c")))
+                    (orderless-match-face-3 ((,spec :weight bold
+                                                    :foreground "#ff9029")))
+                    (marginalia-file-priv-no ((,spec :foreground "#c4c0c8"))))))
+      (os-custom-theme-apply-faces theme faces))))
+
+(add-hook 'enable-theme-functions #'os-leuven-dark-minibuffer-faces)
+
 ;; org hands only five keywords to the document faces --
 ;; `org-fontify-meta-lines-and-blocks-1' special-cases title/subtitle/author/
 ;; email/date -- and drops every other `#+' line through to `org-meta-line'. So
@@ -992,9 +1561,41 @@ A font-lock MATCHER for `os-org-document-keyword-regexp'."
  'append)
 
 ;; The active theme. This is the only place it is set: the Custom block at the
-;; end of this file used to carry `custom-enabled-themes', which runs later and
-;; would override whatever is loaded here (see the note there).
-(load-theme 'ef-elea-light :no-confirm)
+;; end of this file must not carry `custom-enabled-themes' -- it runs later, and
+;; its setter disables every other theme, so a value there silently overrides
+;; whatever is loaded here. M-x customize-themes followed by a save writes it
+;; back; delete it again and change this line instead.
+;; Local Julia variants reuse Leuven's package coverage and font-family
+;; variations, with Julia green/red/blue/purple roles (blue/red, then
+;; red/green swapped by preference from Leuven), and tinted Org bands.  Resolve beside the real init file because user-emacs-directory is
+;; a symlinked deployment location, while these themes belong to the repo.
+;; Keep the active choice here, alongside the other theme configuration.
+(add-to-list 'custom-theme-load-path
+             (expand-file-name "themes" (file-name-directory
+                                        (file-truename
+                                         (or load-file-name user-init-file)))))
+;; Three independently selectable themes: white paper, pale green paper, and
+;; charcoal.  Keep green paper as the startup choice; cycling or selecting a
+;; variant disables the current theme first so faces never accumulate.
+(defun os-julia-theme-select (theme)
+  "Select one of the three Julia Leuven themes interactively."
+  (interactive
+   (list (intern (completing-read
+                  "Julia theme: "
+                  '("julia-leuven-light" "julia-leuven-light-green"
+                    "julia-leuven-dark") nil t))))
+  (mapc #'disable-theme custom-enabled-themes)
+  (load-theme theme t))
+(defun os-julia-theme-toggle ()
+  "Cycle Julia Leuven themes: white, pale green, dark."
+  (interactive)
+  (let* ((themes '(julia-leuven-light julia-leuven-light-green julia-leuven-dark))
+         (current (seq-find (lambda (theme) (memq theme custom-enabled-themes))
+                            themes))
+         (next (or (cadr (memq current themes)) (car themes))))
+    (os-julia-theme-select next)))
+(mapc #'disable-theme custom-enabled-themes)
+(load-theme 'julia-leuven-light-green :no-confirm)
 
 ;; --- Line numbers + current-line highlight ----------------------------------
 ;; Enabled per-mode rather than globally: line numbers and a highlighted row are
@@ -1006,6 +1607,14 @@ A font-lock MATCHER for `os-org-document-keyword-regexp'."
 (dolist (hook '(prog-mode-hook text-mode-hook conf-mode-hook))
   (add-hook hook #'display-line-numbers-mode)
   (add-hook hook #'hl-line-mode))
+
+;; --- Automatic delimiter pairing (built-in) ---------------------------------
+;; Insert the matching closing delimiter as an opening parenthesis, bracket,
+;; brace or quote is typed, leaving point between the pair.  electric-pair
+;; follows each buffer's syntax table and skips an existing closing delimiter
+;; when it is typed, so ordinary typing does not duplicate it.  Enable it
+;; globally for existing and future buffers instead of only in TeX buffers.
+(electric-pair-mode 1)
 
 ;; --- Session persistence (built-ins) -----------------------------------------
 ;; savehist-mode   -- persist minibuffer histories (M-x, file prompts, org-roam
@@ -1035,6 +1644,12 @@ A font-lock MATCHER for `os-org-document-keyword-regexp'."
 ;; current and all future frames.
 (set-face-attribute 'default nil :family "JuliaMono Nerd Font Mono" :height 130)
 (add-to-list 'default-frame-alist '(font . "JuliaMono Nerd Font Mono-13"))
+;; `fixed-pitch' ships as family "Monospace", which fontconfig resolves to a
+;; different mono font (DejaVu/Noto).  The Julia Leuven themes make org tables,
+;; blocks, code and verbatim inherit `fixed-pitch' and leave its family to the
+;; user, so without this those spans render in another font than the text
+;; around them.  No :height -- it stays relative to `default'.
+(set-face-attribute 'fixed-pitch nil :family "JuliaMono Nerd Font Mono")
 
 ;; --- Git (magit + diff-hl) --------------------------------------------------
 ;; magit: the Git porcelain. Autoloaded, so just bind the usual entry point
@@ -1141,7 +1756,7 @@ A font-lock MATCHER for `os-org-document-keyword-regexp'."
 (require 'which-key)
 (which-key-mode 1)
 
-;; --- Help popups (eldoc) ----------------------------------------------------
+;; --- Documentation display (eldoc) ----------------------------------------------------
 ;; Point-idle help: command signature and documentation, which for TeX means
 ;; digestif's own description plus the matching node of the LaTeX reference
 ;; manual (latex2e.info, already installed under /usr/share/info -- digestif
@@ -1169,12 +1784,76 @@ A font-lock MATCHER for `os-org-document-keyword-regexp'."
 ;; `display-graphic-p' is nil and GUI frames created later would silently
 ;; never get the popup. Deciding inside the hook tests the frame the buffer
 ;; actually appears on. And since lsp-mode publishes its hover docs through
-;; eldoc exactly as eglot does, hook both clients -- Python/Julia/R buffers
-;; get the same popup as TeX.
+;; eldoc exactly as eglot does, hook both clients.  Python/R keep the popup;
+;; Julia updates the documentation buffer quietly; C-h . requests the current
+;; docstring in a scrollable right side window.  Automatic updates never open
+;; or reopen that window, so closing it keeps the editing area clear.
+;; Dispatch when the client attaches as well as when Julia mode starts, since
+;; LSP may initialise asynchronously after the major-mode hook has finished.
+(defun my-julia-eldoc-display-in-buffer (docs interactive)
+  "Update Julia DOCS; open the right side window only when INTERACTIVE."
+  (when docs
+    (let ((display-buffer-alist
+           (cons '("\\` ?\\*eldoc\\*\\'"
+                   (display-buffer-reuse-window display-buffer-in-side-window)
+                   (side . right) (slot . 0) (window-width . 0.35))
+                 display-buffer-alist)))
+      (eldoc-display-in-buffer docs interactive)))
+  t)
+
+(defun my-julia-show-documentation ()
+  "Request Julia hover docs directly, or use the REPL when LSP is absent.
+JETLS documentation is rendered in the right-hand ElDoc window.  Without
+an attached hover-capable server, use `julia-repl-doc' and *julia-doc*."
+  (interactive)
+  (if (and (bound-and-true-p lsp-mode)
+           (lsp-workspaces) (lsp-feature? "textDocument/hover"))
+      (let ((source (current-buffer)))
+        (lsp-request-async
+         "textDocument/hover" (lsp--text-document-position-params)
+         (lambda (hover)
+           (when (buffer-live-p source)
+             (with-current-buffer source
+               (let* ((contents (and hover (lsp:hover-contents hover)))
+                      (text (and contents
+                                 (lsp--render-on-hover-content contents t))))
+                 (if (and (stringp text)
+                          (not (string-empty-p (string-trim text))))
+                     (my-julia-eldoc-display-in-buffer (list (list text)) t)
+                   (message "JETLS returned no documentation here; use C-c C-d to query the running REPL."))))))
+         :mode 'detached
+         :error-handler
+         (lambda (error)
+           (message "Julia documentation request failed: %s; use C-c C-d for REPL docs."
+                    error))))
+    (require 'julia-repl)
+    (julia-repl-doc)))
+
+(defun my-julia-eldoc-use-buffer ()
+  "Route Julia documentation to a scrollable buffer instead of eldoc-box."
+  (when (derived-mode-p 'julia-mode 'julia-ts-mode)
+    (when (bound-and-true-p eldoc-box-hover-at-point-mode)
+      (eldoc-box-hover-at-point-mode -1))
+    (when (bound-and-true-p eldoc-box-hover-mode)
+      (eldoc-box-hover-mode -1))
+    ;; Show available providers eagerly: a pending signature provider should
+    ;; not hold back hover documentation from updating the documentation buffer.
+    (setq-local eldoc-documentation-strategy #'eldoc-documentation-compose-eagerly)
+    (setq-local eldoc-display-functions '(my-julia-eldoc-display-in-buffer))
+    (local-set-key (kbd "C-h .") #'my-julia-show-documentation)))
+
 (defun my-eldoc-box-enable-if-graphic ()
-  "Enable `eldoc-box-hover-at-point-mode' on graphical frames only."
-  (when (display-graphic-p)
-    (eldoc-box-hover-at-point-mode 1)))
+  "Use a documentation buffer for Julia, graphical eldoc-box otherwise."
+  (if (derived-mode-p 'julia-mode 'julia-ts-mode)
+      (my-julia-eldoc-use-buffer)
+    (when (display-graphic-p)
+      (eldoc-box-hover-at-point-mode 1))))
+(add-hook 'julia-mode-hook #'my-julia-eldoc-use-buffer)
+(add-hook 'julia-ts-mode-hook #'my-julia-eldoc-use-buffer)
+;; Also update existing Julia buffers when init.el is reloaded.
+(dolist (buffer (buffer-list))
+  (with-current-buffer buffer
+    (my-julia-eldoc-use-buffer)))
 (add-hook 'eglot-managed-mode-hook #'my-eldoc-box-enable-if-graphic)
 (add-hook 'lsp-managed-mode-hook #'my-eldoc-box-enable-if-graphic)
 (setq eldoc-box-max-pixel-width 600)
@@ -1274,8 +1953,37 @@ A font-lock MATCHER for `os-org-document-keyword-regexp'."
 ;; already installed for general use. Note `julia-repl-set-terminal-backend'
 ;; itself does (require 'vterm), so opening the first Julia buffer loads vterm
 ;; -- still off the startup path, which is all the vterm rule above demands.
+;;
+;; `--project=@.' makes the REPL use the same environment JETLS analyses: Julia
+;; walks up from the working directory (the source buffer's, since the vterm
+;; starts there) to the nearest Project.toml, which is JETLS's own rule, and
+;; falls back to the default environment when there is none. Without it the REPL
+;; opens in ~/.julia/environments/vX.Y until C-c C-a is pressed. The *version*
+;; is not set here: bare `julia' follows juliaup's default, and no project has a
+;; directory override. There is one REPL per buffer-name suffix, not per project,
+;; so the project is fixed when it starts.
 (add-hook 'julia-mode-hook #'julia-repl-mode)
+;; C-c C-d sends @doc to the running REPL.  EmacsVterm.jl (loaded by the
+;; companion Julia startup file) returns rendered HTML through vterm's
+;; explicitly allowed julia-repl--show command.  Reuse a persistent right
+;; side window for the clean documentation buffer; ElDoc remains on C-h .
+(add-to-list 'display-buffer-alist
+             '("\\`\\*julia-doc\\*\\'"
+               (display-buffer-reuse-window display-buffer-in-side-window)
+               (side . right) (slot . 0) (window-width . 80)))
+
+;; Native Julia 1.13 highlighting defaults leave functions/types/numbers plain.
+;; Load the companion face mapping at REPL startup; ANSI slots are supplied by
+;; the Julia Leuven themes, so all four logo colours follow the editor palette.
+;; --color=yes ensures the terminal backend receives colour escapes explicitly.
+(defvar my-julia-repl-colors-file
+  (expand-file-name "julia-repl-colors.jl"
+                    (file-name-directory (file-truename
+                                          (or load-file-name user-init-file)))))
 (with-eval-after-load 'julia-repl
+  (setq julia-repl-switches
+        (concat "--project=@. --color=yes --load="
+                (shell-quote-argument my-julia-repl-colors-file)))
   (julia-repl-set-terminal-backend 'vterm))
 
 ;; Format-on-save with Runic, routed through JETLS rather than run directly.
@@ -1313,16 +2021,55 @@ is installed, so a save never fails on a missing piece."
 
 (add-hook 'julia-mode-hook #'my-julia-enable-runic)
 
+;; JETLS analyses a file only when it is opened and on didSave -- never on
+;; didChange -- and it is that analysis which actually loads packages. So a
+;; freshly typed `using Pluto' gives no `Pluto.' completion or hover until the
+;; next save: to the server, `Pluto' does not exist yet. Rather than saving for
+;; real (which would run Runic mid-edit), re-send didSave from lsp-mode's idle
+;; hook whenever the using/import lines change. JETLS analyses the text carried
+;; by the notification, not the file, so nothing touches the disk.
+;;
+;; `lsp--text-document-did-save' is what `after-save-hook' calls; it writes
+;; nothing itself. The `buffer-modified-p' check skips the case a real save has
+;; just covered. Limit: JETLS skips analysis of text that does not parse, so a
+;; `using' pasted together with an unfinished line stays unloaded until a save
+;; once the code parses again.
+(defvar-local my-julia-known-imports nil
+  "This buffer's using/import lines as of the last JETLS analysis.")
+
+(defun my-julia-import-lines ()
+  "Return the using/import lines of the current buffer."
+  (save-excursion
+    (save-restriction
+      (widen)
+      (goto-char (point-min))
+      (let (lines)
+        (while (re-search-forward "^[ \t]*\\(?:using\\|import\\)\\_>.*$" nil t)
+          (push (match-string-no-properties 0) lines))
+        lines))))
+
+(defun my-julia-analyse-new-imports ()
+  "Have JETLS analyse the buffer if its using/import lines changed."
+  (let ((imports (my-julia-import-lines)))
+    (unless (equal imports my-julia-known-imports)
+      (setq my-julia-known-imports imports)
+      (when (buffer-modified-p)
+        (lsp--text-document-did-save)))))
+
+(defun my-julia-enable-import-analysis ()
+  "Analyse new using/import lines in this buffer without saving it."
+  (setq my-julia-known-imports (my-julia-import-lines))
+  (add-hook 'lsp-on-idle-hook #'my-julia-analyse-new-imports nil t))
+
+(add-hook 'julia-mode-hook #'my-julia-enable-import-analysis)
+
 ;; The ChkTeX settings that used to live here were texlab-specific (it is texlab
 ;; that shells out to ChkTeX; digestif does not), so they went with it. digestif
 ;; is quiet by comparison -- it reports unknown commands and bad references, and
 ;; does not lint half-typed macros -- so there is no equivalent noise to tame.
 
-;; Auto-close braces in TeX buffers, so `\begin{' immediately becomes `\begin{}'
-;; with point between them. Wanted in its own right, and it keeps the buffer out
-;; of the unbalanced-brace states that make any TeX server's diagnostics thrash.
-(add-hook 'tex-mode-hook #'electric-pair-local-mode)
-(add-hook 'latex-mode-hook #'electric-pair-local-mode)
+;; Global electric-pair-mode above also closes TeX braces, keeping partial
+;; commands balanced while digestif checks the buffer.
 
 ;; Start a server automatically when visiting a matching buffer. TeX goes to
 ;; eglot (digestif), everything else to lsp-mode; `eglot-ensure' and
@@ -1579,7 +2326,7 @@ of erroring on every save."
   ;; the Export-to-Org row silently doesn't.
   (require 'org-agenda)
   (setq gnus-icalendar-org-capture-file
-        "~/org-mode/agenda/invites.org")
+        "~/slimer/agenda/invites.org")
   (setq gnus-icalendar-org-capture-headline '("Invitations"))
   (gnus-icalendar-org-setup)
   ;; Duplicate-protection depends on the capture file being findable: the
@@ -1614,37 +2361,13 @@ of erroring on every save."
 ;; to also file a copy would duplicate it. `delete' = hand off to Gmail.
 (setq mu4e-sent-messages-behavior 'delete)
 
-;; Jump-to-folder shortcuts (the `j' command in the headers/main view). Every
-;; maildir OfflineIMAP syncs gets a key, so this list mirrors the Gmail label
-;; set; add a line here when a new label appears. `training' and `sociology'
-;; are real labels that may be empty inside the 30-day `maxage' window.
+;; Jump-to-folder shortcuts (the `j' command in the headers/main view).
+;; Keep the main view focused on these four frequently used folders.
 (setq mu4e-maildir-shortcuts
-      '(;; System folders.
-        (:maildir "/gmail/INBOX"             :key ?i)
-        (:maildir "/gmail/[Gmail].All Mail"  :key ?a)
+      '((:maildir "/gmail/INBOX"             :key ?i)
         (:maildir "/gmail/[Gmail].Sent Mail" :key ?s)
         (:maildir "/gmail/[Gmail].Drafts"    :key ?d)
-        (:maildir "/gmail/[Gmail].Bin"       :key ?t)
-        (:maildir "/gmail/[Gmail].Spam"      :key ?S)
-        (:maildir "/gmail/[Gmail].Starred"   :key ?*)
-        ;; Labels.
-        (:maildir "/gmail/@citystgeorges"    :key ?c)
-        (:maildir "/gmail/ba"                :key ?b)
-        (:maildir "/gmail/phd"               :key ?p)
-        (:maildir "/gmail/grants"            :key ?g)
-        (:maildir "/gmail/research"          :key ?r)
-        (:maildir "/gmail/community"         :key ?m)
-        (:maildir "/gmail/admin"             :key ?n)
-        (:maildir "/gmail/travels"           :key ?v)
-        (:maildir "/gmail/lbs"               :key ?l)
-        (:maildir "/gmail/teaching"          :key ?e)
-        (:maildir "/gmail/conferences"       :key ?f)
-        (:maildir "/gmail/career"            :key ?k)
-        (:maildir "/gmail/review"            :key ?w)
-        (:maildir "/gmail/outreach"          :key ?u)
-        (:maildir "/gmail/computing"         :key ?o)
-        (:maildir "/gmail/training"          :key ?y)
-        (:maildir "/gmail/sociology"         :key ?z)))
+        (:maildir "/gmail/@citystgeorges"    :key ?c)))
 
 ;; Identity.
 (setq user-mail-address "sim.santoni@gmail.com")
@@ -1904,9 +2627,40 @@ above for why let-binding `shr-base' (what upstream does) cannot work."
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
- '(custom-enabled-themes '(leuven))
  '(custom-safe-themes
-   '("df6dfd55673f40364b1970440f0b0cb8ba7149282cf415b81aaad2d98b0f0290"
+   '("e0c071f25577ed64d63ab0a77f032ff401e3b362aa126b8a4e0b09a18c310cd4"
+     "e5957c6c57f6e325d6a0f4d6dfabdc4377457a4cd626f44f8bc6084396b5b3cf"
+     "e7e15acc1ebe548c76270deb1b03110968acbea74c3046bf1c79d6501c7e7807"
+     "de8106f57663c5966684ec4dd4e57028491fd27d8a382d386a58814cf5a3cf66"
+     "48a575111485ab285e07ca63f064e0ae453dc8ed06d965e0d73fe29d35e607dd"
+     "f60c23f2a3bcd3ac79c5ff8435395cf5dbb8117d88db0ec54b6578e08a7c85cd"
+     "b6dbc7d44b4f6d4f6d1ae6d340053ed398dea44a4725841979b0a5542cdd0481"
+     "672539b07026a12ce91c3e23b9aa1ad4edbdc5096b279003bb504a9399898c81"
+     "be551d30fbecf76a401a021d5161f7d1b0c9153eb6c9ab8e3d40564ce649315f"
+     "a8c1252f9844caf313a2315ecf1e8ef4d92495c9f2067d875bb1c783b08719ad"
+     "2b0fcc7cc9be4c09ec5c75405260a85e41691abb1ee28d29fcd5521e4fca575b"
+     "615d8f3208b19161ada77e155beaca0678a35abb182ceae87e26660ecbca04d5"
+     "d5c1a09648941993271f1961b4de2801622eea54fb95ce4b2df2fd55d426e52c"
+     "0d2c5679b6d087686dcfd4d7e57ed8e8aedcccc7f1a478cd69704c02e4ee36fe"
+     "e1df746a4fa8ab920aafb96c39cd0ab0f1bac558eff34532f453bd32c687b9d6"
+     "5cb84685a211fb46e47ca355dc91e52adf0c185dc0603cfe27c63855f200dd1f"
+     "7771c8496c10162220af0ca7b7e61459cb42d18c35ce272a63461c0fc1336015"
+     "aec7b55f2a13307a55517fdf08438863d694550565dee23181d2ebd973ebd6b8"
+     "456697e914823ee45365b843c89fbc79191fdbaff471b29aad9dcbe0ee1d5641"
+     "f64189544da6f16bab285747d04a92bd57c7e7813d8c24c30f382f087d460a33"
+     "f053f92735d6d238461da8512b9c071a5ce3b9d972501f7a5e6682a90bf29725"
+     "dd4582661a1c6b865a33b89312c97a13a3885dc95992e2e5fc57456b4c545176"
+     "2b0531a540f4b51e524f551ed7374099f9d743b4de458ade0c52ba18ee6bfe46"
+     "9b9d7a851a8e26f294e778e02c8df25c8a3b15170e6f9fd6965ac5f2544ef2a9"
+     "4b88b7ca61eb48bb22e2a4b589be66ba31ba805860db9ed51b4c484f3ef612a7"
+     "70c88c01b0b5fde9ecf3bb23d542acba45bb4c5ae0c1330b965def2b6ce6fac3"
+     "599f72b66933ea8ba6fce3ae9e5e0b4e00311c2cbf01a6f46ac789227803dd96"
+     "5c7720c63b729140ed88cf35413f36c728ab7c70f8cd8422d9ee1cedeb618de5"
+     "7de64ff2bb2f94d7679a7e9019e23c3bf1a6a04ba54341c36e7cf2d2e56e2bcc"
+     "720838034f1dd3b3da66f6bd4d053ee67c93a747b219d1c546c41c4e425daf93"
+     "fffef514346b2a43900e1c7ea2bc7d84cbdd4aa66c1b51946aade4b8d343b55a"
+     "833ddce3314a4e28411edf3c6efde468f6f2616fc31e17a62587d6a9255f4633"
+     "df6dfd55673f40364b1970440f0b0cb8ba7149282cf415b81aaad2d98b0f0290"
      "f76e34f676ac1fbce608c5f38033c35e370509619b9a3acd02a518ef58b01107"
      "b7a09eb77a1e9b98cafba8ef1bd58871f91958538f6671b22976ea38c2580755"
      "f1e8339b04aef8f145dd4782d03499d9d716fdc0361319411ac2efc603249326"
@@ -1966,9 +2720,8 @@ above for why let-binding `shr-base' (what upstream does) cannot work."
 		   org-roam-bibtex org-roam-ql org-roam-ui org-sidebar
 		   pdf-tools quarto-mode rainbow-csv
 		   rainbow-delimiters reformatter smudge
-		   solarized-theme sqlite3 vertico vterm
-		   writeroom-mode yasnippet yasnippet-capf
-		   yasnippet-snippets))
+		   solarized-theme vertico vterm writeroom-mode
+		   yasnippet yasnippet-capf yasnippet-snippets))
  '(package-vc-selected-packages
    '((insert-uuid :vc-backend Git :url
 		  "https://github.com/theesfeld/insert-uuid")

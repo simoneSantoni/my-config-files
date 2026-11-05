@@ -4,8 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Overview
 
-GNU Emacs 30.2 (GTK3/pgtk, `--with-native-compilation=aot`, `--with-modules`,
-**not** `--with-sqlite3`) configuration. A single `init.el` using the built-in
+GNU Emacs 30.2 (Fedora's `emacs-pgtk` rpm: GTK3/pgtk,
+`--with-native-compilation=aot`, `--with-modules`, `--with-sqlite3`,
+`--with-tree-sitter`) configuration. A single `init.el` using the built-in
 `package.el` (GNU/NonGNU ELPA + MELPA + `package-vc-install` for Git-only
 packages). No use-package, no literate org config — packages are loaded with
 plain `require` and configured imperatively, with a long comment above each
@@ -21,8 +22,9 @@ Edit here, then restart Emacs or `M-x load-file`.
 `init.el` is self-bootstrapping: on startup it installs any missing package —
 archive packages via the `required-packages` list, Git-only packages via
 `package-vc-install` (claude-code-ide, emacs-codex-ide, rainbow-csv,
-emacs-zulip, dired-sidebar, org-sidebar, all-the-icons-dired). To add a
-package, add it to the right one of those two mechanisms, not just a `require`.
+emacs-zulip, dired-sidebar, org-sidebar, all-the-icons-dired, insert-uuid,
+pgmacs, foxglove-themes — and Org itself, see below). To add a package, add it
+to the right one of those two mechanisms, not just a `require`.
 
 **Gotcha:** `package-vc-install` names the package after the *repository*, so
 the codex and zulip packages are `emacs-codex-ide` and `emacs-zulip` even
@@ -34,7 +36,10 @@ package name or the package reinstalls on every startup.
 1. `tool-bar-style` before any frame renders
 2. Package archives + keyring bootstrap (`gnu-elpa-keyring-update`, with
    signature checking relaxed only for that one install)
-3. Package installation (archive list, then the `package-vc-install` block)
+3. Package installation: the compat guard, then **Org from Git `main`**, then
+   the archive list, then the `package-vc-install` block. Org goes first so the
+   org-dependent archive packages byte-compile against the Org they will run
+   on (see "Org is Git `main`" below).
 4. `exec-path-from-shell` (window-system/daemon only) — GUI Emacs otherwise
    misses `~/.local/bin` (the `claude` CLI) and other shell PATH entries.
    `exec-path-from-shell-arguments` is **nil**, not the default
@@ -45,7 +50,14 @@ package name or the package reinstalls on every startup.
    `exec-path-from-shell-warn-duration-millis`) into ~2ms. If PATH ever moves
    back into `~/.zshrc`, this must go back to `("-l" "-i")`.
 5. `compat` **before** anything pulls in `transient` — transient uses macros
-   (`static-when`) that ship in compat but not in Emacs 30.x
+   (`static-when`) that ship in compat but not in Emacs 30.x. Emacs 30 also
+   ships a *stub* `compat` (30.2.9999) that package.el counts as built-in, so
+   `package-installed-p` lies about it: the bootstrap has a separate guard that
+   installs compat from its archive descriptor whenever `package-alist` lacks
+   it, and `package-upgrade-all` silently skips it — upgrade by hand with
+   `package-install-upgrade-built-in` bound to `t`. That guard now sits
+   *ahead* of the `required-packages` loop (step 3), since Org `main` also
+   declares `(compat "31")`.
 6. Feature sections
 
 ## Deliberately NOT `require`'d at startup
@@ -62,6 +74,12 @@ package name or the package reinstalls on every startup.
   `os-calfw-open`, not at load time.
 - **magit, zulip, the theme packs (solarized/doom-themes), olivetti /
   writeroom / darkroom** — all autoloaded; only entry-point keybindings are set.
+- **pgmacs** — its entry points (`pgmacs`, `pgmacs-open-string`,
+  `pgmacs-open-uri`) are autoloaded; a `require` would load pg-el/peg/widget
+  at startup for an on-demand client. Its `pg` dependency comes from MELPA via
+  `required-packages`, so `package-vc-install` resolves nothing itself. The
+  install byte-compiles pgmacs's `test/` files too, which fail on a missing
+  `keycast` — expected, nothing loads them.
 
 ## Architecture notes
 
@@ -103,6 +121,24 @@ package name or the package reinstalls on every startup.
   backend) — the send-to-REPL counterpart of ESS for R; JETLS stays the only
   completion/xref source. Chosen over julia-snail, whose session-fed
   completion/xref backends would compete with lsp-mode's.
+  `julia-repl-switches` is `--project=@.`, so the REPL takes the nearest
+  `Project.toml`, the same rule JETLS uses. The *version* is juliaup's default;
+  no project has a directory override. `~/.julia/bin/{jetls,runic,git-runic}`
+  are hand-pointed at the juliaup launcher (`julia_cmd=~/.juliaup/bin/julia`) so
+  they follow that default and survive `juliaup update`; any `Pkg.Apps` install
+  regenerates them pinned to an exact Julia, which juliaup later deletes, so
+  repeat the edit afterwards. Known limit, accepted: on Julia 1.13.3 a buffer
+  with `using Pluto` and `Pluto.ru` freezes the whole JETLS server until it is
+  restarted (Aug checkout and the 2026-10-26 release alike); other packages
+  tested are fine.
+- **JETLS package loading**: analysis runs on open and on didSave, never on
+  didChange, and analysis is what loads packages, so a new `using Pkg` has no
+  `Pkg.` completion or hover until then. `my-julia-analyse-new-imports`
+  (`lsp-on-idle-hook`) re-sends didSave when the using/import lines change;
+  JETLS analyses the text in the notification, so nothing is written to disk
+  and Runic does not run. Text that does not parse is not analysed. Don't test
+  completion with `lsp-completion-at-point` in `--batch`: it returns 0
+  candidates there even when the server replied, so use a daemon.
 - **Julia formatting** = Runic, but reached *through* JETLS, not directly:
   JETLS defaults to `formatter = "Runic"` and shells out to the `runic`
   executable, so `before-save-hook` just calls `lsp-format-buffer`. Unlike R's
@@ -110,10 +146,17 @@ package name or the package reinstalls on every startup.
   route over the same buffer. Double-guarded on `lsp-feature?` and
   `executable-find` so buffers with no server, and machines without Runic, skip
   formatting instead of failing the save.
-- **org-roam** stores notes in `~/org/roam` and needs a SQLite backend. This
-  Emacs build lacks `--with-sqlite3`, so EmacSQL falls back to the `sqlite3`
-  dynamic module (compiled on first load, needs libsqlite3 dev headers). If
-  Emacs is ever rebuilt with `--with-sqlite3`, drop the `sqlite3` package.
+- **org-roam** indexes `~/slimer` (the academic repo; db at
+  `~/slimer/.org-roam.db`) and needs a SQLite backend. Fedora's `emacs-pgtk`
+  is built `--with-sqlite3`, so EmacSQL uses the built-in backend
+  (`emacsql-sqlite-builtin`); the `sqlite3` module package was dropped in
+  2026-10. On an Emacs built without `--with-sqlite3`, add `sqlite3` back to
+  `required-packages` (it compiles on first load and needs libsqlite3 dev
+  headers) or org-roam fails at startup. The `safe-local-variable-values`
+  whitelist for `~/slimer/.dir-locals.el` must stay **before**
+  `org-roam-db-autosync-mode`: enabling it syncs synchronously and runs
+  `hack-local-variables` on each changed note, so a later whitelist brings
+  back the "may not be safe" prompt at startup.
 - **Bibliography stack** (citar, citar-org-roam, org-roam-bibtex, org-roam-ui,
   org-roam-ql) sits *after* the `~/org-mode/org-config.el` load, and must stay
   there: that file owns the path to `bibliography.bib` (it sets
@@ -193,13 +236,37 @@ package name or the package reinstalls on every startup.
   redefined `main` modeline. The two segment lists in
   `doom-modeline-def-modeline` mirror doom-modeline's upstream default — if
   doom-modeline updates its defaults, re-sync those lists by hand.
-- **Themes**: three packs installed, one theme active — `ef-elea-light`, loaded
-  in the themes section, which is the *only* place the active theme is set.
+- **Org is Git `main` (10.0-pre), not the bundled 9.7** — installed with
+  `package-vc-install` as package `org` (savannah org-mode.git) purely to get
+  `org-latex-preview` (abode.karthinks.com/org-latex-preview/), which only
+  exists there until Org 10.0. `org-latex-preview-mode` is on in every org
+  buffer, with live previews, guarded on `locate-library` so a stock Org is a
+  no-op. Traps: the install guard is `(assq 'org package-alist)` because
+  `package-installed-p` is t for built-in Org; `package-vc-allow-build-commands`
+  must contain `org` (a global setq, so `package-vc-upgrade` also re-runs
+  `make autoloads`) or the checkout lacks its own org-loaddefs/org-version and
+  the built-in ones get loaded — a mixed install; and the upstream recipe's
+  nested `:make '(…)` quote is wrong. After the switch, or after a big Org
+  upgrade, run `M-x package-recompile-all` so org-roam/citar/org-ql/etc. drop
+  .elc compiled against the old Org's macros. Do not install org-fragtog or
+  org-latex-impatient — they fight `org-latex-preview-mode`.
+- **Themes**: four packs installed (ef-themes, solarized, doom-themes,
+  foxglove-themes) plus Emacs' bundled `leuven`/`leuven-dark`; one theme
+  active — `ef-elea-light` (since 2026-10-30; `leuven-dark` before it, whose
+  setup below is kept intact), loaded at the end of the themes section, which
+  is the *only* place the active theme is set.
   `custom-enabled-themes` was deleted from the trailing Custom block on purpose:
   that block runs last and its setter disables every other theme, so a value
   there silently reverted the `load-theme` above it. If Custom writes it back,
   delete it again. `ef-themes-to-toggle` holds the `ef-elea-light`/`-dark` pair.
   Themes stack rather than replace — `disable-theme` before `load-theme`.
+  foxglove is a Modus derivative like ef, so the shared `modus-themes-*`
+  settings below reach it: heading sizes are kept, but the ef palette overrides
+  (blue band on level 1) are undone for foxglove by restating its own
+  `bg-heading-1`/`fg-heading-1`/`overline-heading-1/2` in
+  `foxglove-themes-palette-overrides`, which Modus consults before the common
+  overrides. Those four values match foxglove's default heading styles
+  (`band`/`rule`); change them together.
 - **ef-themes org styling** (themes section, modelled on leuven): scaled title
   (1.6) and headings, overline rules on levels 1–2, blue band on level 1, plus
   a red band on the `:PROPERTIES:` drawer and a purple one on the `#+title:`
@@ -232,6 +299,47 @@ package name or the package reinstalls on every startup.
     face is not an option.
   - `org-fontify-whole-heading-line` is t and `:extend t` is on the banded
     faces; without those the rules and bands stop at the end of the text.
+- **leuven-dark mode-line** (`os-leuven-dark-mode-line-faces`, also on
+  `enable-theme-functions`): leuven-dark keeps a light tan mode-line while its
+  `success`/`warning`/`error` are tuned for its dark buffers, so doom-modeline
+  segments and nerd-icons drew at ≤2.3:1 (magenta on orange). The hook gives
+  the bar a dark background and lifts `warning` to `#6f8cff`. Trap: for a
+  non-`user` theme, `custom-theme-set-faces` silently drops faces the theme
+  does not already style (e.g. `doom-modeline-*`). `os-custom-theme-apply-faces`
+  (init.el) records *and* applies such faces — use it for any new override
+  (don't bind `custom--inhibit-theme-enable` instead — that sets
+  `saved-face`, which Custom would later save). Sibling hooks, sharing one palette — keyword
+  yellow `#ffff0b` (TODO chips, selected candidate, level-2 heading text),
+  teal `#06c8cf` (level-3 text), cyan `#06ffff` (vertico match patches; mixed
+  35% into the background, `#1a6e75`, for the level-1 band), SeaGreen3 `#43cd80` (cursor and minibuffer prompt):
+  - `os-leuven-dark-org-faces` restyles org headings 1-3, replacing
+    leuven-dark's near-invisible grey bands: level 1 a translucent cyan band
+    with white text and a `#06ffff` overline, levels 2-3 plain-background text in
+    yellow / teal. It also turns `org-todo` (shipped
+    ~1.3:1 teal) into a yellow chip, and restyles DONE items (`org-done`,
+    `org-headline-done`) to recede by italic light grey and a grey chip,
+    since leuven-dark's dim greys vanish on a band. Bands must carry *light*
+    text: `hl-line`'s overlay background beats a text-property background,
+    so a band with dark text blanks out on the cursor line. Anything yellow
+    is therefore a foreground under `:inverse-video` with dark text.
+  - Task statuses are filled chips, one colour each (TODO yellow, NEXT
+    LightSkyBlue, WAIT orange, HOLD pink, DONE SeaGreen3, CANCELLED grey
+    struck through), mapped by `org-todo-keyword-faces` in init.el onto
+    `os-org-todo-*` faces that inherit `org-todo`/`org-done` under other
+    themes. The keywords themselves live in `~/slimer/org-config.el` — add a
+    keyword to both places.
+  - `os-leuven-dark-comment-faces` lifts comments to `#9a969e` (the
+    alternative leuven-dark's own source notes; global, all modes) and org
+    tags to `#a9a5ad` — both were too dark to read, e.g. in `@@comment:…@@`.
+  - `os-leuven-dark-cursor-face` makes the cursor SeaGreen3 `#43cd80` (same
+    value in Emacs' X11 names and xcolor's `x11names`), replacing an
+    orange-red that blended with the region and links.
+  - `os-leuven-dark-minibuffer-faces` makes `vertico-current` a yellow bar
+    (inverse video again, so orderless/marginalia foregrounds become readable
+    patches; the match faces — `completions-common-part`, `orderless-match-face-0..3`
+    — are vivid cyan/pink/green/orange so those patches are bright) and the
+    minibuffer prompt dark on solid SeaGreen3 instead of
+    leuven-dark's `#0628ff` blue; `highlight` itself is left alone.
 - The trailing `custom-set-variables` block is owned by Custom (it records
   `package-vc-selected-packages`); leave it as the single instance at the end.
 
@@ -258,7 +366,7 @@ Native-comp warnings are logged to `*Native-compile-Log*` (report style is
 | ghostel native module | none to build — prebuilt libghostty-vt binary downloaded on first `M-x ghostel`; needs `--with-modules` and network on first run |
 | treemacs git decoration | `git`; `treemacs-git-mode` `deferred` additionally needs Python 3 (`simple` is set here and needs neither) |
 | pdf-tools (epdfinfo) | poppler + glib dev headers, build toolchain |
-| org-roam (sqlite3 module) | libsqlite3 dev headers |
+| org-roam | none — SQLite is built into Fedora's `emacs-pgtk` (`--with-sqlite3`) |
 | claude-code-ide / codex-ide | `claude` / `codex` CLIs on PATH |
 | TeX LSP | digestif (ships with TeX Live), `/usr/bin/info` + latex2e.info for docs |
 | Python LSP | basedpyright: `uv tool install basedpyright` (uv itself: `curl -LsSf https://astral.sh/uv/install.sh \| sh`) |
@@ -273,3 +381,5 @@ Native-comp warnings are logged to `*Native-compile-Log*` (report style is
 | mu4e mail | Fedora `maildir-utils`, offlineimap, msmtp (see README) |
 | Spotify (smudge) | own Spotify OAuth app; client id/secret in `~/.keys/spotify-client-{id,secret}.txt` |
 | Mode-line icons / font | JuliaMono Nerd Font Mono; `M-x nerd-icons-install-fonts` |
+| Org from Git (build) | `make`, `makeinfo` (texinfo), network on first run |
+| Org LaTeX previews | TeX Live (`latex`), `dvisvgm` with Ghostscript support (`dvisvgm --version=yes`); Emacs with SVG |

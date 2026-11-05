@@ -50,13 +50,15 @@ Installed from ELPA/MELPA (the `required-packages` list in `init.el`):
 | Package | Purpose |
 |---------|---------|
 | `lsp-mode` | LSP client for Python (pylsp), Julia (JETLS), and R (languageserver) |
-| `eldoc-box` | Floating childframe for eldoc/LSP documentation |
+| `eldoc-box` | Floating childframe for eldoc/LSP documentation outside Julia; Julia docstrings update `*eldoc*` quietly; `C-h .` opens the current documentation in a scrollable right side window without moving focus |
 | `ess` | R editing and console (Emacs Speaks Statistics) |
-| `julia-mode` | Julia major mode |
+| `julia-mode` | Julia major mode; `C-c C-d` queries the running REPL and opens rendered documentation in the 80-column `*julia-doc*` right side window (requires EmacsVterm in the shared Julia environment); `C-h .` requests JETLS hover documentation directly in ElDoc (falls back to the REPL when no hover-capable server is attached) |
+| Julia REPL colours | Julia 1.13+ native highlighting loads `julia-repl-colors.jl`; Julia Leuven ANSI faces match Ghostty. Green functions/keywords, red strings, purple types/macros, blue constants. Restart the REPL after configuration changes |
 | `reformatter` | Defines `air-format-on-save-mode` for R formatting |
 | `quarto-mode` | `.qmd` authoring (autoloads only) |
 | `markdown-mode` / `markdown-toc` | Markdown editing / table-of-contents generation |
 | `csv-mode` | CSV/TSV editing |
+| `pg` | Pure-Elisp PostgreSQL wire client (pg-el); backs `pgmacs` |
 | `rainbow-delimiters` | Rainbow parens in programming modes |
 
 (TeX uses the *built-in* eglot with digestif — two LSP clients coexist on
@@ -73,7 +75,6 @@ disjoint major modes by design.)
 | `org-roam-export` | Bundled HTML-export support for Org-roam ID links |
 | `org-download` | MELPA package for image downloads, drag-and-drop, and screenshots; uses Org attachments |
 | `mathpix` | Installed from [upstream Git](https://github.com/jethrokuan/mathpix.el); screenshot-to-LaTeX OCR |
-| `sqlite3` | Dynamic SQLite module backing org-roam's database (this Emacs build lacks `--with-sqlite3`) |
 | `citar` | Completion UI over `~/org-mode/bibliography.bib`; drives org-cite's insert/follow/activate processors (`C-c C-x @`) |
 | `citar-org-roam` | Makes org-roam nodes citar's note store — a reference note is a node with the citekey in `ROAM_REFS` (`C-c n r`) |
 | `org-roam-bibtex` | Citekey-keyed capture templates and attachment handling; `orb-insert-link` on `C-c n b` |
@@ -106,7 +107,7 @@ API; set `MATHPIX_APP_ID` and `MATHPIX_APP_KEY` before starting Emacs, or config
 | `doom-modeline` | Compact, informative mode-line (custom `os-emacs-logos` segment) |
 | `minions` | Collapse minor-mode lighters into a single menu |
 | `nerd-icons` / `all-the-icons` | Icon sets for the mode-line and Dired |
-| `ef-themes` | Active theme pack — `ef-elea-light` loads at startup |
+| `ef-themes` | Theme pack — `ef-elea-light` is the startup theme |
 | `solarized-theme` / `doom-themes` | Alternative theme packs, installed but not loaded |
 
 **Tools & applications**
@@ -130,6 +131,7 @@ they provide):
 | `emacs-codex-ide` | Codex CLI client (feature: `codex-ide`) |
 | `emacs-zulip` | Zulip chat client (feature: `zulip`; reads `~/zuliprc`) |
 | `rainbow-csv` | Per-column colors in CSV buffers |
+| `pgmacs` | PostgreSQL table browser/editor (`M-x pgmacs`, `pgmacs-open-string`, `pgmacs-open-uri`); autoloaded, not required at startup |
 | `dired-sidebar` | Dired-backed file tree; toggle with `C-x C-n` |
 | `org-sidebar` | Org task/outline sidebars; toggle with `C-c n s` / `C-c n t` |
 | `all-the-icons-dired` | File-type icons in ordinary Dired buffers |
@@ -156,7 +158,7 @@ These are needed by packages that compile native components or shell out:
 | `vterm` native module | `cmake`, `libtool`, a C compiler |
 | `pdf-tools` (`epdfinfo`) | `poppler` + `glib` development headers, build toolchain |
 | `claude-code-ide` / `codex-ide` | `claude` / `codex` CLIs on `PATH` (resolved via `exec-path-from-shell`) |
-| `org-roam` (`sqlite3` module) | libsqlite3 development headers (module compiled on first load) |
+| `org-roam` | none — SQLite is built into Fedora's `emacs-pgtk` (`--with-sqlite3`) |
 | TeX LSP (eglot) | `digestif` (ships with TeX Live) |
 | Python LSP | `pylsp` from the dedicated `emacs-lsp` conda env |
 | Julia LSP | JETLS (`jetls` in `~/.julia/bin`), Julia ≥ 1.12.2 |
@@ -190,7 +192,9 @@ trust-store path is Fedora-specific.
 
 - **Toolbar** forced to `image` style (this GTK3 build otherwise inherits the
   desktop's `text` toolbar style and shows icon descriptions instead of icons).
-- **Theme**: `ef-elea-light` on startup; toggle light/dark with `M-x ef-themes-toggle`.
+- **Theme**: `ef-elea-light` on startup; `M-x ef-themes-toggle` switches to
+  `ef-elea-dark`. The bundled `leuven-dark`, restyled by the `os-leuven-dark-*`
+  functions (see [`../COLORS.md`](../COLORS.md)), is still fully set up.
 - **Font**: JuliaMono Nerd Font Mono at height 120 / size 12.
 - **Mode-line**: custom `os-emacs-logos` segment (Emacs + Tux glyphs) prepended
   to doom-modeline's default `main` modeline.

@@ -1,0 +1,47 @@
+# Ghostty theme based on Emacs leuven-dark.
+# Palette source: leuven-dark-theme.el by Fabrice Niessen, bundled with GNU
+# Emacs 30.2 (etc/themes/, GPL-3.0-or-later).
+#
+# leuven-dark is a hue-rotated leuven, and its `ansi-color-names-vector'
+# rotated with it: red is #37ffff (cyan), green #e074e3 (magenta), yellow
+# #3732ff (blue). Copied as-is, every `ls', git diff and compiler error would
+# show the wrong colour. So the background, foreground, cursor and selection
+# are leuven-dark's own, and each ANSI slot takes the leuven-dark colour that
+# actually *has* that slot's hue:
+#
+#   0/8   highlight-gray / `shadow'   7/15  default fg / white
+#   1/9   red-orange #ff7138 (links)  / pink-red #ff8890
+#   2/10  font-lock-variable-name     / bright green
+#   3/11  olive #b3af59               / font-lock-keyword yellow #ffff0b
+#   5/13  font-lock-variable magenta  / light magenta
+#   6/14  font-lock-constant cyan     / bright cyan
+#   4/12  derived: leuven-dark's only blues are dark backgrounds (#0601ff,
+#         #252053), unreadable as text, so these are lightened to >= 5:1
+
+palette = 0=#3e3944
+palette = 1=#ff7138
+palette = 2=#4ac964
+palette = 3=#b3af59
+palette = 4=#6f8cff
+palette = 5=#e074e3
+palette = 6=#34c8d8
+palette = 7=#cfccd2
+palette = 8=#848088
+palette = 9=#ff8890
+palette = 10=#78ff7c
+palette = 11=#ffff0b
+palette = 12=#9db0ff
+palette = 13=#ff9bff
+palette = 14=#6bffff
+palette = 15=#ffffff
+
+background = #25202a
+foreground = #cfccd2
+
+# leuven-dark's `cursor' face (orange).
+cursor-color = #e1420b
+cursor-text = #25202a
+
+# leuven-dark's `region' (burnt orange).
+selection-background = #752c0b
+selection-foreground = #ffffff
