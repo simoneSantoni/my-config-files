@@ -146,6 +146,11 @@
                            solarized-theme
                            doom-themes
                            magit
+                           ;; forge: GitHub/GitLab issues and PRs inside magit.
+                           ;; Its closql/emacsql/ghub/treepy/yaml deps come
+                           ;; with it; it needs compat >= 31, which the guard
+                           ;; above supplies.
+                           forge
                            diff-hl
                            lsp-mode
                            lsp-pyright
@@ -185,6 +190,11 @@
                            ;; configured in slimer's org-config.el with the rest
                            ;; of the reference stack.
                            org-noter
+                           ;; Two-way sync between Org headlines and a forge's
+                           ;; issue tracker (MELPA, arbox/org-sync; last
+                           ;; release 2018). Configured next to forge in the
+                           ;; Git section.
+                           org-sync
                            smudge)))
   (dolist (pkg required-packages)
     (unless (package-installed-p pkg)
@@ -1663,6 +1673,65 @@ A font-lock MATCHER for `os-org-document-keyword-regexp'."
 (require 'diff-hl)
 (global-diff-hl-mode 1)
 (add-hook 'magit-post-refresh-hook #'diff-hl-magit-post-refresh)
+
+;; forge: issues, pull requests and discussions from GitHub/GitLab, shown in
+;; magit-status and acted on from magit (`N' opens forge's dispatch). Loaded
+;; after magit, as upstream recommends, so it stays out of startup like magit
+;; itself. Its database is SQLite through EmacSQL's built-in backend (Emacs is
+;; built `--with-sqlite3', the same reason org-roam needs no sqlite3 module).
+;; Auth is the usual auth-source entry: `machine api.github.com login
+;; USER^forge password TOKEN' in ~/.authinfo.gpg, with USER also set as
+;; `git config --global github.user'. Pull a repo's topics with `N f f'.
+(with-eval-after-load 'magit
+  (require 'forge))
+
+;; org-sync: imports a GitHub/GitLab issue list as an Org headline tree and
+;; syncs edits back (`M-x org-sync-import' at point, then `M-x org-sync' in the
+;; buffer). Upstream has no autoload cookies, so the two commands are
+;; autoloaded by hand here. Its backends are separate files that the core never
+;; loads, so they are required after it. Only github and gitlab: the Bitbucket
+;; backend talks to an API retired in 2019 (and needs the deprecated `cl'), and
+;; Remember The Milk is not used. GitLab reads `org-sync-gitlab-auth-token'.
+(autoload 'org-sync "org-sync" "Update buglists in current buffer." t)
+(autoload 'org-sync-import "org-sync" "Fetch and insert at point bugs from URL." t)
+(with-eval-after-load 'org-sync
+  (require 'org-sync-github)
+  (require 'org-sync-gitlab))
+
+;; org-sync's GitHub auth is dead: it puts ("user" . "pwd") in
+;; `url-basic-auth-storage' under realm "Github API", which url.el only
+;; consults on a matching 401 challenge that GitHub no longer sends, so
+;; requests go out anonymous -- reads of public repos work, private repos 404
+;; and every write fails. GitHub has also dropped password auth. Send forge's
+;; token as a Bearer header instead, so one auth-source entry serves both.
+;; org-sync only builds api.github.com URLs, so the token goes nowhere else.
+;; With no USER^forge entry the advice is a no-op (anonymous, as upstream).
+;; Remove it only if upstream starts sending a token itself. The `defvar' makes
+;; the `let*' below a dynamic binding even before url.el has loaded; without it
+;; this lexical-binding file would bind it lexically and send no header.
+(defvar url-request-extra-headers)
+(defun os-org-sync-github-token ()
+  "Return forge's GitHub token from auth-source, or nil."
+  (let ((entry (seq-find (lambda (e)
+                           (string-suffix-p "^forge" (or (plist-get e :user) "")))
+                         (auth-source-search :host "api.github.com" :max 10))))
+    (when entry
+      (let ((secret (plist-get entry :secret)))
+        (if (functionp secret) (funcall secret) secret)))))
+
+(defun os-org-sync-github-bearer (orig url)
+  "Call ORIG on URL with forge's GitHub token as a Bearer header."
+  (let* ((token (os-org-sync-github-token))
+         (url-request-extra-headers
+          (if token
+              (cons (cons "Authorization" (concat "Bearer " token))
+                    url-request-extra-headers)
+            url-request-extra-headers)))
+    (funcall orig url)))
+
+(with-eval-after-load 'org-sync-github
+  (advice-add 'org-sync-github-url-retrieve-synchronously
+              :around #'os-org-sync-github-bearer))
 
 ;; --- Completion UI (corfu) --------------------------------------------------
 ;; The piece that was missing. Both LSP clients below publish their candidates

@@ -232,6 +232,18 @@ package name or the package reinstalls on every startup.
   stuck in-progress flag on C-g that re-freezes Emacs from the poll timer.
   The advice adds a 120s timeout and full cleanup. Remove it only if
   upstream bounds the wait and clears the flag itself.
+- **forge + org-sync share one GitHub token.** forge is `require`d inside
+  `with-eval-after-load 'magit`, so it stays out of startup. Its database uses
+  EmacSQL's built-in SQLite backend. org-sync (MELPA, unmaintained since 2018)
+  has no autoload cookies, so `org-sync` and `org-sync-import` are autoloaded
+  by hand, and its github and gitlab backends are `require`d after the core,
+  which never loads them. Its GitHub auth never fires: url.el only reads
+  `url-basic-auth-storage` on a 401 challenge, which GitHub no longer sends,
+  and GitHub has also dropped password auth. `os-org-sync-github-bearer`
+  advises `org-sync-github-url-retrieve-synchronously` to send forge's
+  auth-source token (`api.github.com`, login `USER^forge`) as a Bearer
+  header. Without that entry the advice does nothing and requests stay
+  anonymous.
 - **doom-modeline custom segment**: `os-emacs-logos` is prepended to a
   redefined `main` modeline. The two segment lists in
   `doom-modeline-def-modeline` mirror doom-modeline's upstream default — if
@@ -379,6 +391,7 @@ Native-comp warnings are logged to `*Native-compile-Log*` (report style is
 | Quarto render/preview | `quarto` CLI (editing `.qmd` works without it) |
 | Mermaid render (mermaid-mode `C-c C-c`) | `mmdc` (`npm install -g @mermaid-js/mermaid-cli`); editing `.mmd` works without it |
 | mu4e mail | Fedora `maildir-utils`, offlineimap, msmtp (see README) |
+| forge / org-sync (GitHub) | GitHub token in `~/.authinfo.gpg` (`machine api.github.com login USER^forge password TOKEN`) and `git config --global github.user USER`; org-sync reads public repos without it |
 | Spotify (smudge) | own Spotify OAuth app; client id/secret in `~/.keys/spotify-client-{id,secret}.txt` |
 | Mode-line icons / font | JuliaMono Nerd Font Mono; `M-x nerd-icons-install-fonts` |
 | Org from Git (build) | `make`, `makeinfo` (texinfo), network on first run |
